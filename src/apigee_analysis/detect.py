@@ -147,11 +147,94 @@ def detect_error_rate_anomalies(settings: Settings) -> list[Point]:
     return points
 
 
-def run_all(settings: Settings) -> None:
-    """Run all detectors and write results to the anomaly bucket."""
+def _run_at(settings: Settings, at: datetime) -> list[Point]:
+    """Run all detectors with the baseline window ending at `at`."""
+    stop = at.strftime("%Y-%m-%dT%H:%M:%SZ")
+    start_ts = (at - timedelta(hours=BASELINE_HOURS + LAG_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     points: list[Point] = []
-    points += detect_traffic_anomalies(settings)
-    points += detect_error_rate_anomalies(settings)
+
+    with _client(settings) as client:
+        # Traffic volume
+        flux = f'''
+        from(bucket: "{settings.source_bucket}")
+          |> range(start: {start_ts}, stop: {stop})
+          |> filter(fn: (r) => r._field == "Sum of traffic")
+          |> group(columns: ["apiproxy"])
+          |> aggregateWindow(every: 1h, fn: sum, createEmpty: false)
+        '''
+        df = _query(client, flux)
+
+    if not df.empty:
+        for proxy, grp in df.groupby("apiproxy"):
+            grp = grp.sort_values("_time").set_index("_time")
+            values = grp["_value"].astype(float)
+            if len(values) < 10:
+                continue
+            mean = values.mean()
+            std  = values.std()
+            if std == 0:
+                continue
+            latest = values.iloc[-1]
+            zscore = (latest - mean) / std
+            is_anomaly = abs(zscore) >= Z_THRESHOLD
+            points.append(
+                Point("traffic_anomaly")
+                .tag("apiproxy", proxy)
+                .tag("is_anomaly", str(is_anomaly).lower())
+                .field("z_score", float(round(zscore, 4)))
+                .field("traffic", float(latest))
+                .field("baseline_mean", float(round(mean, 2)))
+                .time(at, WritePrecision.S)
+            )
+
+    with _client(settings) as client:
+        # Error rates
+        flux = f'''
+        from(bucket: "{settings.source_bucket}")
+          |> range(start: {start_ts}, stop: {stop})
+          |> filter(fn: (r) => r._field == "Sum of traffic")
+          |> group(columns: ["apiproxy", "response_status_code"])
+          |> aggregateWindow(every: 1h, fn: sum, createEmpty: false)
+        '''
+        df = _query(client, flux)
+
+    if not df.empty:
+        for proxy, grp in df.groupby("apiproxy"):
+            grp = grp.copy()
+            grp["is_error"] = grp["response_status_code"].astype(str).str.startswith(("4", "5"))
+            by_time = grp.groupby("_time").apply(
+                lambda g: g.loc[g["is_error"], "_value"].sum() / g["_value"].sum()
+                if g["_value"].sum() > 0 else 0.0
+            ).rename("error_rate").reset_index()
+            by_time = by_time.sort_values("_time").set_index("_time")
+            rates = by_time["error_rate"].astype(float)
+            if len(rates) < 10:
+                continue
+            mean  = rates.mean()
+            std   = rates.std()
+            if std == 0:
+                continue
+            latest = rates.iloc[-1]
+            zscore = (latest - mean) / std
+            is_anomaly = abs(zscore) >= Z_THRESHOLD
+            points.append(
+                Point("error_rate_anomaly")
+                .tag("apiproxy", proxy)
+                .tag("is_anomaly", str(is_anomaly).lower())
+                .field("z_score", float(round(zscore, 4)))
+                .field("error_rate", float(round(latest, 4)))
+                .field("baseline_mean", float(round(mean, 4)))
+                .time(at, WritePrecision.S)
+            )
+
+    return points
+
+
+def run_all(settings: Settings, at: datetime | None = None) -> None:
+    """Run all detectors and write results to the anomaly bucket."""
+    at = at or datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    points = _run_at(settings, at)
 
     if not points:
         log.info("no anomaly points to write")
@@ -160,4 +243,30 @@ def run_all(settings: Settings) -> None:
     with _client(settings) as client:
         write_api = client.write_api(write_options=SYNCHRONOUS)
         write_api.write(bucket=settings.anomaly_bucket, record=points)
-        log.info("wrote %d anomaly points to '%s'", len(points), settings.anomaly_bucket)
+        log.info("wrote %d anomaly points to '%s' at %s",
+                 len(points), settings.anomaly_bucket, at.strftime("%Y-%m-%dT%H:%M:%SZ"))
+
+
+def backfill(settings: Settings, hours: int = 24) -> None:
+    """Run detection for each of the last `hours` hours using a sliding window."""
+    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    all_points: list[Point] = []
+
+    for h in range(hours, 0, -1):
+        at = now - timedelta(hours=h)
+        log.info("backfill %d/%d — window ending %s", hours - h + 1, hours,
+                 at.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        pts = _run_at(settings, at)
+        all_points.extend(pts)
+        anomalies = sum(1 for p in pts if '"is_anomaly":"true"' in p.to_line_protocol()
+                        or "is_anomaly=true" in p.to_line_protocol())
+        log.info("  → %d points, %d anomalies", len(pts), anomalies)
+
+    if not all_points:
+        log.info("no points to write")
+        return
+
+    with _client(settings) as client:
+        write_api = client.write_api(write_options=SYNCHRONOUS)
+        write_api.write(bucket=settings.anomaly_bucket, record=all_points)
+        log.info("backfill complete — wrote %d total points", len(all_points))
