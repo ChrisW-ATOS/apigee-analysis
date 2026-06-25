@@ -38,6 +38,39 @@ def _query(client: InfluxDBClient, flux: str) -> pd.DataFrame:
     return client.query_api().query_data_frame(flux)
 
 
+def _load_previous_anomalies(settings: Settings, at: datetime) -> dict:
+    """Load all anomaly results from the previous hour into a lookup dict.
+
+    Returns: {(measurement, key_tag_value): consecutive_hours}
+    where key_tag_value is apiproxy for proxy measurements, xcountrycode for country_health.
+    Only includes records where is_anomaly == "true".
+    """
+    prev_hour = at - timedelta(hours=1)
+    start = (prev_hour - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stop  = (prev_hour + timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    lookup: dict = {}
+    try:
+        with _client(settings) as client:
+            flux = f'''
+            from(bucket: "{settings.anomaly_bucket}")
+              |> range(start: {start}, stop: {stop})
+              |> filter(fn: (r) => r.is_anomaly == "true")
+            '''
+            tables = client.query_api().query(flux, org=settings.influx_org)
+            for table in tables:
+                for rec in table.records:
+                    m = rec.get_measurement()
+                    key = rec.values.get("apiproxy") or rec.values.get("xcountrycode", "")
+                    error_class = rec.values.get("error_class", "")
+                    lookup_key = (m, key, error_class)
+                    prev_consec = rec.values.get("consecutive_hours", 1)
+                    lookup[lookup_key] = int(prev_consec) if prev_consec else 1
+    except Exception as exc:
+        log.debug("could not load previous anomalies (first run?): %s", exc)
+    return lookup
+
+
 def detect_traffic_anomalies(settings: Settings) -> list[Point]:
     """Detect traffic volume anomalies per apiproxy using rolling Z-score.
 
@@ -92,7 +125,8 @@ def detect_traffic_anomalies(settings: Settings) -> list[Point]:
 
 
 def _error_rate_points(df: pd.DataFrame, error_class: str,
-                       status_prefix: tuple, at: datetime) -> list[Point]:
+                       status_prefix: tuple, at: datetime,
+                       prev: dict | None = None) -> list[Point]:
     """Compute Z-score anomaly points for a specific error class (client/server)."""
     points: list[Point] = []
     df = df.copy()
@@ -117,19 +151,25 @@ def _error_rate_points(df: pd.DataFrame, error_class: str,
         zscore = (latest - mean) / std
         is_anomaly = abs(zscore) >= Z_THRESHOLD
 
+        prev_consec = (prev or {}).get(("error_rate_anomaly", proxy, error_class), 0)
+        consec = (prev_consec + 1) if is_anomaly else 0
+        sustained = is_anomaly and consec >= 2
+
         points.append(
             Point("error_rate_anomaly")
             .tag("apiproxy", proxy)
             .tag("error_class", error_class)
             .tag("is_anomaly", str(is_anomaly).lower())
+            .tag("sustained", str(sustained).lower())
             .field("z_score", float(round(zscore, 4)))
             .field("error_rate", float(round(latest, 4)))
             .field("baseline_mean", float(round(mean, 4)))
+            .field("consecutive_hours", consec)
             .time(at, WritePrecision.S)
         )
         if is_anomaly:
-            log.warning("ANOMALY error_rate [%s] | proxy=%s z=%.2f rate=%.2f%%",
-                        error_class, proxy, zscore, latest * 100)
+            log.warning("ANOMALY error_rate [%s] | proxy=%s z=%.2f rate=%.2f%% | sustained=%s hours=%d",
+                        error_class, proxy, zscore, latest * 100, sustained, consec)
     return points
 
 
@@ -234,6 +274,7 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
     """Run all detectors with the baseline window ending at `at`."""
     stop = at.strftime("%Y-%m-%dT%H:%M:%SZ")
     start_ts = (at - timedelta(hours=BASELINE_HOURS + LAG_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    prev = _load_previous_anomalies(settings, at)
 
     points: list[Point] = []
 
@@ -261,13 +302,17 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
             latest = values.iloc[-1]
             zscore = (latest - mean) / std
             is_anomaly = abs(zscore) >= Z_THRESHOLD
+            prev_consec = prev.get(("traffic_anomaly", proxy, ""), 0)
+            consec = (prev_consec + 1) if is_anomaly else 0
             points.append(
                 Point("traffic_anomaly")
                 .tag("apiproxy", proxy)
                 .tag("is_anomaly", str(is_anomaly).lower())
+                .tag("sustained", str(is_anomaly and consec >= 2).lower())
                 .field("z_score", float(round(zscore, 4)))
                 .field("traffic", float(latest))
                 .field("baseline_mean", float(round(mean, 2)))
+                .field("consecutive_hours", consec)
                 .time(at, WritePrecision.S)
             )
 
@@ -283,8 +328,8 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
         df = _query(client, flux)
 
     if not df.empty:
-        points += _error_rate_points(df, "client", ("4",), at)
-        points += _error_rate_points(df, "server", ("5",), at)
+        points += _error_rate_points(df, "client", ("4",), at, prev)
+        points += _error_rate_points(df, "server", ("5",), at, prev)
 
     # Country health — using explicit time window for backfill accuracy
     with _client(settings) as client:
@@ -321,15 +366,19 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
             latest = rates.iloc[-1]
             zscore = (latest - mean) / std
             is_anomaly = abs(zscore) >= Z_THRESHOLD
+            prev_consec = prev.get(("country_health", country, ""), 0)
+            consec = (prev_consec + 1) if is_anomaly else 0
             points.append(
                 Point("country_health")
                 .tag("xcountrycode", country)
                 .tag("is_anomaly", str(is_anomaly).lower())
-                .field("error_rate",    float(round(latest, 4)))
-                .field("z_score",       float(round(zscore, 4)))
-                .field("total_calls",   float(by_time["total_calls"].iloc[-1]))
-                .field("total_errors",  float(by_time["total_errors"].iloc[-1]))
-                .field("baseline_mean", float(round(mean, 4)))
+                .tag("sustained", str(is_anomaly and consec >= 2).lower())
+                .field("error_rate",       float(round(latest, 4)))
+                .field("z_score",          float(round(zscore, 4)))
+                .field("total_calls",      float(by_time["total_calls"].iloc[-1]))
+                .field("total_errors",     float(by_time["total_errors"].iloc[-1]))
+                .field("baseline_mean",    float(round(mean, 4)))
+                .field("consecutive_hours", consec)
                 .time(at, WritePrecision.S)
             )
 
