@@ -25,6 +25,15 @@ BASELINE_HOURS = 168  # 7 days
 LAG_HOURS = 2
 
 
+def _client(settings: Settings) -> InfluxDBClient:
+    return InfluxDBClient(
+        url=settings.influx_url,
+        token=settings.influx_token,
+        org=settings.influx_org,
+        timeout=120_000,  # 2 minutes
+    )
+
+
 def _query(client: InfluxDBClient, flux: str) -> pd.DataFrame:
     return client.query_api().query_data_frame(flux)
 
@@ -34,15 +43,13 @@ def detect_traffic_anomalies(settings: Settings) -> list[Point]:
 
     Returns a list of InfluxDB Points to write to the anomaly bucket.
     """
-    with InfluxDBClient(url=settings.influx_url, token=settings.influx_token,
-                        org=settings.influx_org) as client:
+    with _client(settings) as client:
         flux = f'''
         from(bucket: "{settings.source_bucket}")
           |> range(start: -{BASELINE_HOURS + LAG_HOURS}h)
-          |> filter(fn: (r) => r._measurement == "Sum of traffic" or r._field == "Sum of traffic")
-          |> group(columns: ["apiproxy", "_time"])
-          |> sum()
+          |> filter(fn: (r) => r._field == "Sum of traffic")
           |> group(columns: ["apiproxy"])
+          |> aggregateWindow(every: 1h, fn: sum, createEmpty: false)
         '''
         df = _query(client, flux)
 
@@ -73,7 +80,7 @@ def detect_traffic_anomalies(settings: Settings) -> list[Point]:
             .field("z_score", float(round(latest, 4)))
             .field("traffic", float(values.iloc[-1]))
             .field("baseline_mean", float(round(mean.iloc[-1], 2)))
-            .time(now, WritePrecision.SECONDS)
+            .time(now, WritePrecision.S)
         )
         points.append(p)
         if is_anomaly:
@@ -86,15 +93,13 @@ def detect_traffic_anomalies(settings: Settings) -> list[Point]:
 
 def detect_error_rate_anomalies(settings: Settings) -> list[Point]:
     """Detect error rate anomalies (4xx+5xx / total) per apiproxy."""
-    with InfluxDBClient(url=settings.influx_url, token=settings.influx_token,
-                        org=settings.influx_org) as client:
+    with _client(settings) as client:
         flux = f'''
         from(bucket: "{settings.source_bucket}")
           |> range(start: -{BASELINE_HOURS + LAG_HOURS}h)
           |> filter(fn: (r) => r._field == "Sum of traffic")
-          |> group(columns: ["apiproxy", "response_status_code", "_time"])
-          |> sum()
           |> group(columns: ["apiproxy", "response_status_code"])
+          |> aggregateWindow(every: 1h, fn: sum, createEmpty: false)
         '''
         df = _query(client, flux)
 
@@ -132,7 +137,7 @@ def detect_error_rate_anomalies(settings: Settings) -> list[Point]:
             .field("z_score", float(round(latest, 4)))
             .field("error_rate", float(round(rates.iloc[-1], 4)))
             .field("baseline_mean", float(round(mean.iloc[-1], 4)))
-            .time(now, WritePrecision.SECONDS)
+            .time(now, WritePrecision.S)
         )
         points.append(p)
         if is_anomaly:
@@ -152,8 +157,7 @@ def run_all(settings: Settings) -> None:
         log.info("no anomaly points to write")
         return
 
-    with InfluxDBClient(url=settings.influx_url, token=settings.influx_token,
-                        org=settings.influx_org) as client:
+    with _client(settings) as client:
         write_api = client.write_api(write_options=SYNCHRONOUS)
         write_api.write(bucket=settings.anomaly_bucket, record=points)
         log.info("wrote %d anomaly points to '%s'", len(points), settings.anomaly_bucket)
