@@ -331,6 +331,18 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
         points += _error_rate_points(df, "client", ("4",), at, prev)
         points += _error_rate_points(df, "server", ("5",), at, prev)
 
+    # Blast radius for anomalous proxies in this window
+    anomalous = {
+        part.split("=", 1)[1].strip().strip('"')
+        for p in points
+        for part in (p.to_line_protocol() or "").split(",")
+        if part.startswith("apiproxy=") and (
+            "is_anomaly=true" in (p.to_line_protocol() or "") or
+            'is_anomaly="true"' in (p.to_line_protocol() or "")
+        )
+    }
+    points += detect_blast_radius(settings, anomalous, at)
+
     # Country health — using explicit time window for backfill accuracy
     with _client(settings) as client:
         flux = f'''
@@ -385,11 +397,75 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
     return points
 
 
+def detect_blast_radius(settings: Settings, anomalous_proxies: set[str],
+                        at: datetime) -> list[Point]:
+    """For each anomalous proxy, find which developer_apps and countries are affected.
+
+    Queries the last LAG_HOURS+1 hours of traffic for the anomalous proxies and
+    returns one Point per (apiproxy, developer_app, xcountrycode) combination.
+    Measurement: blast_radius. Fields: call_count.
+    """
+    if not anomalous_proxies:
+        return []
+
+    stop     = at.strftime("%Y-%m-%dT%H:%M:%SZ")
+    start_ts = (at - timedelta(hours=LAG_HOURS + 1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    with _client(settings) as client:
+        flux = f'''
+        from(bucket: "{settings.source_bucket}")
+          |> range(start: {start_ts}, stop: {stop})
+          |> filter(fn: (r) => r._field == "Sum of traffic")
+          |> group(columns: ["apiproxy", "developer_app", "xcountrycode"])
+          |> sum()
+        '''
+        df = _query(client, flux)
+
+    if df.empty:
+        return []
+
+    points: list[Point] = []
+    for _, row in df.iterrows():
+        proxy = row.get("apiproxy", "")
+        if proxy not in anomalous_proxies:
+            continue
+        app     = row.get("developer_app", "(not set)")
+        country = row.get("xcountrycode", "(not set)")
+        calls   = float(row.get("_value", 0))
+        if calls == 0:
+            continue
+        points.append(
+            Point("blast_radius")
+            .tag("apiproxy",      proxy)
+            .tag("developer_app", app)
+            .tag("xcountrycode",  country)
+            .field("call_count", calls)
+            .time(at, WritePrecision.S)
+        )
+
+    log.info("blast radius: %d affected app/country combinations across %d anomalous proxies",
+             len(points), len(anomalous_proxies))
+    return points
+
+
 def run_all(settings: Settings, at: datetime | None = None) -> None:
     """Run all detectors and write results to the anomaly bucket."""
     at = at or datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
     points  = _run_at(settings, at)
     points += detect_country_health(settings)
+
+    # Blast radius — identify affected apps/countries for anomalous proxies
+    anomalous_proxies: set[str] = set()
+    for p in points:
+        lp = p.to_line_protocol() or ""
+        if "is_anomaly=true" in lp or 'is_anomaly="true"' in lp:
+            # Extract apiproxy tag value from line protocol
+            for part in lp.split(","):
+                if part.startswith("apiproxy="):
+                    proxy = part.split("=", 1)[1].strip().strip('"')
+                    if proxy:
+                        anomalous_proxies.add(proxy)
+    points += detect_blast_radius(settings, anomalous_proxies, at)
 
     if not points:
         log.info("no anomaly points to write")
