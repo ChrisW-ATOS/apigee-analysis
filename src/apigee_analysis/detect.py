@@ -91,8 +91,50 @@ def detect_traffic_anomalies(settings: Settings) -> list[Point]:
     return points
 
 
+def _error_rate_points(df: pd.DataFrame, error_class: str,
+                       status_prefix: tuple, at: datetime) -> list[Point]:
+    """Compute Z-score anomaly points for a specific error class (client/server)."""
+    points: list[Point] = []
+    df = df.copy()
+    df["is_error"] = df["response_status_code"].astype(str).str.startswith(status_prefix)
+
+    for proxy, grp in df.groupby("apiproxy"):
+        by_time = grp.groupby("_time").apply(
+            lambda g: g.loc[g["is_error"], "_value"].sum() / g["_value"].sum()
+            if g["_value"].sum() > 0 else 0.0
+        ).rename("error_rate").reset_index()
+        by_time = by_time.sort_values("_time").set_index("_time")
+
+        rates = by_time["error_rate"].astype(float)
+        if len(rates) < 10:
+            continue
+
+        mean   = rates.mean()
+        std    = rates.std()
+        if std == 0:
+            continue
+        latest = rates.iloc[-1]
+        zscore = (latest - mean) / std
+        is_anomaly = abs(zscore) >= Z_THRESHOLD
+
+        points.append(
+            Point("error_rate_anomaly")
+            .tag("apiproxy", proxy)
+            .tag("error_class", error_class)
+            .tag("is_anomaly", str(is_anomaly).lower())
+            .field("z_score", float(round(zscore, 4)))
+            .field("error_rate", float(round(latest, 4)))
+            .field("baseline_mean", float(round(mean, 4)))
+            .time(at, WritePrecision.S)
+        )
+        if is_anomaly:
+            log.warning("ANOMALY error_rate [%s] | proxy=%s z=%.2f rate=%.2f%%",
+                        error_class, proxy, zscore, latest * 100)
+    return points
+
+
 def detect_error_rate_anomalies(settings: Settings) -> list[Point]:
-    """Detect error rate anomalies (4xx+5xx / total) per apiproxy."""
+    """Detect error rate anomalies per apiproxy, split by client (4xx) and server (5xx)."""
     with _client(settings) as client:
         flux = f'''
         from(bucket: "{settings.source_bucket}")
@@ -107,43 +149,9 @@ def detect_error_rate_anomalies(settings: Settings) -> list[Point]:
         log.warning("error rate query returned no data")
         return []
 
-    points: list[Point] = []
-    now = datetime.now(timezone.utc)
-
-    for proxy, grp in df.groupby("apiproxy"):
-        grp = grp.copy()
-        grp["is_error"] = grp["response_status_code"].astype(str).str.startswith(("4", "5"))
-        by_time = grp.groupby("_time").apply(
-            lambda g: g.loc[g["is_error"], "_value"].sum() / g["_value"].sum()
-            if g["_value"].sum() > 0 else 0.0
-        ).rename("error_rate").reset_index()
-        by_time = by_time.sort_values("_time").set_index("_time")
-
-        rates = by_time["error_rate"].astype(float)
-        if len(rates) < 10:
-            continue
-
-        mean  = rates.rolling(BASELINE_HOURS, min_periods=10).mean()
-        std   = rates.rolling(BASELINE_HOURS, min_periods=10).std().replace(0, np.nan)
-        zscore = ((rates - mean) / std).fillna(0)
-
-        latest = zscore.iloc[-1]
-        is_anomaly = abs(latest) >= Z_THRESHOLD
-
-        p = (
-            Point("error_rate_anomaly")
-            .tag("apiproxy", proxy)
-            .tag("is_anomaly", str(is_anomaly).lower())
-            .field("z_score", float(round(latest, 4)))
-            .field("error_rate", float(round(rates.iloc[-1], 4)))
-            .field("baseline_mean", float(round(mean.iloc[-1], 4)))
-            .time(now, WritePrecision.S)
-        )
-        points.append(p)
-        if is_anomaly:
-            log.warning("ANOMALY error_rate | proxy=%s z=%.2f rate=%.2f%%",
-                        proxy, latest, rates.iloc[-1] * 100)
-
+    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    points  = _error_rate_points(df, "client", ("4",), now)
+    points += _error_rate_points(df, "server", ("5",), now)
     return points
 
 
@@ -189,7 +197,7 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
             )
 
     with _client(settings) as client:
-        # Error rates
+        # Error rates — split by client (4xx) and server (5xx)
         flux = f'''
         from(bucket: "{settings.source_bucket}")
           |> range(start: {start_ts}, stop: {stop})
@@ -200,33 +208,8 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
         df = _query(client, flux)
 
     if not df.empty:
-        for proxy, grp in df.groupby("apiproxy"):
-            grp = grp.copy()
-            grp["is_error"] = grp["response_status_code"].astype(str).str.startswith(("4", "5"))
-            by_time = grp.groupby("_time").apply(
-                lambda g: g.loc[g["is_error"], "_value"].sum() / g["_value"].sum()
-                if g["_value"].sum() > 0 else 0.0
-            ).rename("error_rate").reset_index()
-            by_time = by_time.sort_values("_time").set_index("_time")
-            rates = by_time["error_rate"].astype(float)
-            if len(rates) < 10:
-                continue
-            mean  = rates.mean()
-            std   = rates.std()
-            if std == 0:
-                continue
-            latest = rates.iloc[-1]
-            zscore = (latest - mean) / std
-            is_anomaly = abs(zscore) >= Z_THRESHOLD
-            points.append(
-                Point("error_rate_anomaly")
-                .tag("apiproxy", proxy)
-                .tag("is_anomaly", str(is_anomaly).lower())
-                .field("z_score", float(round(zscore, 4)))
-                .field("error_rate", float(round(latest, 4)))
-                .field("baseline_mean", float(round(mean, 4)))
-                .time(at, WritePrecision.S)
-            )
+        points += _error_rate_points(df, "client", ("4",), at)
+        points += _error_rate_points(df, "server", ("5",), at)
 
     return points
 
