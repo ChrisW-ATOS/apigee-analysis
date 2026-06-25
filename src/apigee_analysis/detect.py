@@ -19,6 +19,11 @@ Z_THRESHOLD = 3.0
 # Rolling window used to compute baseline (hours)
 BASELINE_HOURS = 168  # 7 days
 
+# Apigee analytics lag — data is typically 1-2 hours behind real-time.
+# Queries use range(start: -(BASELINE_HOURS + LAG_HOURS)) so the most
+# recent data point in the dataset is always LAG_HOURS old, not missing.
+LAG_HOURS = 2
+
 
 def _query(client: InfluxDBClient, flux: str) -> pd.DataFrame:
     return client.query_api().query_data_frame(flux)
@@ -33,7 +38,7 @@ def detect_traffic_anomalies(settings: Settings) -> list[Point]:
                         org=settings.influx_org) as client:
         flux = f'''
         from(bucket: "{settings.source_bucket}")
-          |> range(start: -{BASELINE_HOURS}h)
+          |> range(start: -{BASELINE_HOURS + LAG_HOURS}h)
           |> filter(fn: (r) => r._measurement == "Sum of traffic" or r._field == "Sum of traffic")
           |> group(columns: ["apiproxy", "_time"])
           |> sum()
@@ -85,7 +90,7 @@ def detect_error_rate_anomalies(settings: Settings) -> list[Point]:
                         org=settings.influx_org) as client:
         flux = f'''
         from(bucket: "{settings.source_bucket}")
-          |> range(start: -{BASELINE_HOURS}h)
+          |> range(start: -{BASELINE_HOURS + LAG_HOURS}h)
           |> filter(fn: (r) => r._field == "Sum of traffic")
           |> group(columns: ["apiproxy", "response_status_code", "_time"])
           |> sum()
