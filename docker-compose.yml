@@ -1,0 +1,9 @@
+services:
+  analysis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    network_mode: host  # reaches the influxdb container on localhost:8086
