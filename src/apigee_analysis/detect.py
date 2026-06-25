@@ -155,6 +155,81 @@ def detect_error_rate_anomalies(settings: Settings) -> list[Point]:
     return points
 
 
+def detect_country_health(settings: Settings) -> list[Point]:
+    """Compute a rolled-up health score per xcountrycode.
+
+    Aggregates error rate across all proxies for each country and applies
+    Z-score against a 7-day baseline. Writes to measurement 'country_health'
+    with tags: xcountrycode, is_anomaly.
+    Fields: error_rate, z_score, total_calls, total_errors.
+    """
+    with _client(settings) as client:
+        flux = f'''
+        from(bucket: "{settings.source_bucket}")
+          |> range(start: -{BASELINE_HOURS + LAG_HOURS}h)
+          |> filter(fn: (r) => r._field == "Sum of traffic")
+          |> group(columns: ["xcountrycode", "response_status_code"])
+          |> aggregateWindow(every: 1h, fn: sum, createEmpty: false)
+        '''
+        df = _query(client, flux)
+
+    if df.empty:
+        log.warning("country health query returned no data")
+        return []
+
+    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    points: list[Point] = []
+
+    for country, grp in df.groupby("xcountrycode"):
+        if not country or country in ("(not set)", ""):
+            continue
+        grp = grp.copy()
+        grp["is_error"] = grp["response_status_code"].astype(str).str.startswith(("4", "5"))
+
+        # Build hourly error rate + call volume for this country
+        by_time = grp.groupby("_time").apply(
+            lambda g: pd.Series({
+                "error_rate": g.loc[g["is_error"], "_value"].sum() / g["_value"].sum()
+                              if g["_value"].sum() > 0 else 0.0,
+                "total_calls": g["_value"].sum(),
+                "total_errors": g.loc[g["is_error"], "_value"].sum(),
+            })
+        ).reset_index().sort_values("_time").set_index("_time")
+
+        rates = by_time["error_rate"].astype(float)
+        if len(rates) < 10:
+            continue
+
+        mean   = rates.mean()
+        std    = rates.std()
+        if std == 0:
+            continue
+        latest_rate   = rates.iloc[-1]
+        zscore        = (latest_rate - mean) / std
+        is_anomaly    = abs(zscore) >= Z_THRESHOLD
+        total_calls   = float(by_time["total_calls"].iloc[-1])
+        total_errors  = float(by_time["total_errors"].iloc[-1])
+
+        points.append(
+            Point("country_health")
+            .tag("xcountrycode", country)
+            .tag("is_anomaly", str(is_anomaly).lower())
+            .field("error_rate", float(round(latest_rate, 4)))
+            .field("z_score",    float(round(zscore, 4)))
+            .field("total_calls",   total_calls)
+            .field("total_errors",  total_errors)
+            .field("baseline_mean", float(round(mean, 4)))
+            .time(now, WritePrecision.S)
+        )
+        if is_anomaly:
+            log.warning("ANOMALY country_health | country=%s z=%.2f error_rate=%.2f%%",
+                        country, zscore, latest_rate * 100)
+
+    log.info("country health: %d countries, %d anomalies",
+             len(points), sum(1 for p in points if "true" in str(p.to_line_protocol())))
+    return points
+
+
 def _run_at(settings: Settings, at: datetime) -> list[Point]:
     """Run all detectors with the baseline window ending at `at`."""
     stop = at.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -211,13 +286,61 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
         points += _error_rate_points(df, "client", ("4",), at)
         points += _error_rate_points(df, "server", ("5",), at)
 
+    # Country health — using explicit time window for backfill accuracy
+    with _client(settings) as client:
+        flux = f'''
+        from(bucket: "{settings.source_bucket}")
+          |> range(start: {start_ts}, stop: {stop})
+          |> filter(fn: (r) => r._field == "Sum of traffic")
+          |> group(columns: ["xcountrycode", "response_status_code"])
+          |> aggregateWindow(every: 1h, fn: sum, createEmpty: false)
+        '''
+        df = _query(client, flux)
+
+    if not df.empty:
+        for country, grp in df.groupby("xcountrycode"):
+            if not country or country in ("(not set)", ""):
+                continue
+            grp = grp.copy()
+            grp["is_error"] = grp["response_status_code"].astype(str).str.startswith(("4", "5"))
+            by_time = grp.groupby("_time").apply(
+                lambda g: pd.Series({
+                    "error_rate": g.loc[g["is_error"], "_value"].sum() / g["_value"].sum()
+                                  if g["_value"].sum() > 0 else 0.0,
+                    "total_calls":  g["_value"].sum(),
+                    "total_errors": g.loc[g["is_error"], "_value"].sum(),
+                })
+            ).reset_index().sort_values("_time").set_index("_time")
+            rates = by_time["error_rate"].astype(float)
+            if len(rates) < 10:
+                continue
+            mean = rates.mean()
+            std  = rates.std()
+            if std == 0:
+                continue
+            latest = rates.iloc[-1]
+            zscore = (latest - mean) / std
+            is_anomaly = abs(zscore) >= Z_THRESHOLD
+            points.append(
+                Point("country_health")
+                .tag("xcountrycode", country)
+                .tag("is_anomaly", str(is_anomaly).lower())
+                .field("error_rate",    float(round(latest, 4)))
+                .field("z_score",       float(round(zscore, 4)))
+                .field("total_calls",   float(by_time["total_calls"].iloc[-1]))
+                .field("total_errors",  float(by_time["total_errors"].iloc[-1]))
+                .field("baseline_mean", float(round(mean, 4)))
+                .time(at, WritePrecision.S)
+            )
+
     return points
 
 
 def run_all(settings: Settings, at: datetime | None = None) -> None:
     """Run all detectors and write results to the anomaly bucket."""
     at = at or datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
-    points = _run_at(settings, at)
+    points  = _run_at(settings, at)
+    points += detect_country_health(settings)
 
     if not points:
         log.info("no anomaly points to write")
