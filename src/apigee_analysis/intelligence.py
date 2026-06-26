@@ -10,8 +10,10 @@ import json
 import logging
 import os
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import anthropic
+from dotenv import load_dotenv
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
@@ -19,6 +21,12 @@ from .config import Settings
 from .detect import _client
 
 log = logging.getLogger(__name__)
+
+# Load from the analysis project's .env regardless of working directory
+# __file__ = src/apigee_analysis/intelligence.py → go up 3 levels to project root
+_env_file = Path(__file__).parent.parent.parent / ".env"
+if _env_file.exists():
+    load_dotenv(_env_file, override=True)
 
 CLAUDE_MODEL = "claude-opus-4-8"
 
@@ -154,15 +162,25 @@ def generate_incident_brief(context: dict) -> dict | None:
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model=CLAUDE_MODEL,
-            max_tokens=512,
+            max_tokens=1024,
             messages=[{"role": "user", "content": _build_prompt(context)}],
         )
         raw = message.content[0].text.strip()
+        log.debug("raw API response: %s", raw[:200])
+        if not raw:
+            log.error("Claude API returned empty response")
+            return None
+        # Strip markdown code fences if model wrapped the JSON
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
         brief = json.loads(raw)
         log.info("incident brief generated | severity=%s", brief.get("severity", "?"))
         return brief
     except Exception as exc:
-        log.error("failed to generate incident brief: %s", exc)
+        log.error("failed to generate incident brief: %s | key_set=%s", exc, bool(api_key))
         return None
 
 
