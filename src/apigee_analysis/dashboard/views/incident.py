@@ -1,6 +1,9 @@
 """Incident Brief view — latest Claude summary + active anomaly table."""
 from __future__ import annotations
 
+from datetime import timedelta
+
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -103,6 +106,111 @@ def _anomaly_table(df: pd.DataFrame) -> None:
         use_container_width=True,
         hide_index=True,
     )
+
+
+_COLOURS = ["#2563EB", "#DC2626", "#16A34A", "#D97706", "#9333EA"]
+
+
+def _error_rate_chart(df: pd.DataFrame) -> None:
+    """Time-series of combined error rates for top proxies + 2h linear projection."""
+    st.subheader("Predicted Error Rates — Top 5 Endpoints")
+    st.caption("Solid lines: actual hourly error rate · Dotted: 2-hour linear projection")
+
+    if df.empty:
+        st.info("No error rate history available.")
+        return
+
+    # Combine client + server into total error rate per proxy per hour.
+    # Both are fractions of total traffic so they sum to the total error fraction.
+    total = (
+        df.groupby(["proxy", "time"])
+        .agg(error_rate=("error_rate", "sum"), is_anomaly=("is_anomaly", "any"))
+        .reset_index()
+    )
+    total["error_rate"] = total["error_rate"].clip(0, 1)
+    total = total.sort_values("time")
+
+    fig = go.Figure()
+
+    for i, proxy in enumerate(total["proxy"].unique()):
+        grp    = total[total["proxy"] == proxy].sort_values("time").reset_index(drop=True)
+        colour = _COLOURS[i % len(_COLOURS)]
+        # Shorten the label to the most descriptive suffix
+        parts  = [p for p in proxy.split("_") if p]
+        label  = "_".join(parts[-3:]) if len(parts) > 3 else proxy
+        label  = label[:35]
+
+        anomaly_colours = ["#EF4444" if a else colour for a in grp["is_anomaly"]]
+        anomaly_sizes   = [10 if a else 5 for a in grp["is_anomaly"]]
+
+        # Historical trace
+        fig.add_trace(go.Scatter(
+            x=grp["time"],
+            y=grp["error_rate"] * 100,
+            mode="lines+markers",
+            name=label,
+            line=dict(color=colour, width=2),
+            marker=dict(color=anomaly_colours, size=anomaly_sizes,
+                        line=dict(color="white", width=1)),
+            hovertemplate=(
+                f"<b>{label}</b><br>"
+                "Time: %{x}<br>"
+                "Error rate: %{y:.1f}%<extra></extra>"
+            ),
+        ))
+
+        # 2-hour linear projection from the last 3 data points
+        if len(grp) >= 2:
+            tail   = grp.tail(3)
+            x_num  = np.arange(len(tail))
+            y_vals = tail["error_rate"].values
+            slope, intercept = np.polyfit(x_num, y_vals, 1)
+
+            t_last   = grp["time"].iloc[-1]
+            proj_t   = [t_last + timedelta(hours=h) for h in [1, 2]]
+            proj_r   = [
+                float(np.clip(slope * (len(tail) - 1 + h) + intercept, 0, 1))
+                for h in [1, 2]
+            ]
+
+            fig.add_trace(go.Scatter(
+                x=[t_last] + proj_t,
+                y=[(grp["error_rate"].iloc[-1]) * 100] + [r * 100 for r in proj_r],
+                mode="lines+markers",
+                name=f"{label} (projected)",
+                line=dict(color=colour, width=2, dash="dot"),
+                marker=dict(color=colour, size=7, symbol="diamond"),
+                showlegend=False,
+                hovertemplate=(
+                    f"<b>{label} (projected)</b><br>"
+                    "Time: %{x}<br>"
+                    "Projected: %{y:.1f}%<extra></extra>"
+                ),
+            ))
+
+    # Soft reference line at 10%
+    fig.add_hline(
+        y=10, line_dash="dash", line_color="#CBD5E1", line_width=1,
+        annotation_text="10%", annotation_position="top left",
+        annotation_font_size=10,
+    )
+
+    y_max = max(total["error_rate"].max() * 100 * 1.15, 15)
+    fig.update_layout(
+        xaxis_title="Time (UTC)",
+        yaxis_title="Error Rate (%)",
+        yaxis=dict(range=[0, y_max], gridcolor="#E2E8F0", ticksuffix="%"),
+        xaxis=dict(gridcolor="#E2E8F0"),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                    font=dict(size=11)),
+        height=400,
+        plot_bgcolor="#FAFAFA",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0, r=0, t=40, b=0),
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def _multivariate_section(mv_df: pd.DataFrame) -> None:
@@ -208,10 +316,11 @@ def render(settings: Settings) -> None:
     st.header("Incident Brief")
 
     with st.spinner("Loading..."):
-        brief        = queries.get_latest_incident_brief(settings)
-        anomalies_df = queries.get_active_anomalies(settings)
-        predicted_df = queries.get_predicted_anomalies(settings)
-        mv_df        = queries.get_multivariate_anomalies(settings)
+        brief          = queries.get_latest_incident_brief(settings)
+        anomalies_df   = queries.get_active_anomalies(settings)
+        predicted_df   = queries.get_predicted_anomalies(settings)
+        mv_df          = queries.get_multivariate_anomalies(settings)
+        error_trend_df = queries.get_error_rate_trend(settings, top_n=5)
 
     # Predictive alert banner
     if not predicted_df.empty:
@@ -244,6 +353,11 @@ def render(settings: Settings) -> None:
                   delta_color="inverse")
         c3.metric("Unique Proxies",   univariate_df["proxy"].nunique())
         _anomaly_table(anomalies_df)
+
+    st.divider()
+
+    # Error rate trend + projection
+    _error_rate_chart(error_trend_df)
 
     st.divider()
 

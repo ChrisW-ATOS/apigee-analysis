@@ -148,6 +148,68 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=60, show_spinner=False)
+def get_error_rate_trend(settings: Settings, top_n: int = 5) -> pd.DataFrame:
+    """Last 25h of hourly error rates for the top N most anomalous proxies.
+
+    Step 1: find top_n proxies by peak |z_score| in the last 4h.
+    Step 2: fetch 25h of error_rate history for those proxies.
+    Returns columns: time, proxy, error_class, error_rate, z_score, is_anomaly.
+    """
+    try:
+        # Top proxies by worst z_score this window
+        top_tables = _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -4h)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly" and r.is_anomaly == "true")
+          |> filter(fn: (r) => r._field == "z_score")
+          |> group(columns: ["apiproxy"])
+          |> max()
+          |> sort(columns: ["_value"], desc: true)
+          |> limit(n: {top_n})
+        ''')
+        top_proxies = [
+            rec.values.get("apiproxy", "")
+            for t in top_tables for rec in t.records
+            if rec.values.get("apiproxy")
+        ]
+        if not top_proxies:
+            return pd.DataFrame()
+
+        proxy_filter = " or ".join(f'r.apiproxy == "{p}"' for p in top_proxies)
+        rows = []
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -25h)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+          |> filter(fn: (r) => {proxy_filter})
+          |> filter(fn: (r) => r._field == "error_rate" or r._field == "z_score")
+          |> pivot(rowKey:["_time","apiproxy","error_class","is_anomaly"], columnKey:["_field"], valueColumn:"_value")
+        '''):
+            for rec in table.records:
+                proxy = rec.values.get("apiproxy", "")
+                ec    = rec.values.get("error_class", "")
+                if proxy and ec:
+                    rows.append({
+                        "time":        rec.get_time(),
+                        "proxy":       proxy,
+                        "error_class": ec,
+                        "error_rate":  float(rec.values.get("error_rate") or 0),
+                        "z_score":     float(rec.values.get("z_score") or 0),
+                        "is_anomaly":  rec.values.get("is_anomaly", "false") == "true",
+                    })
+
+        if not rows:
+            return pd.DataFrame()
+
+        df = pd.DataFrame(rows)
+        df["time"] = pd.to_datetime(df["time"])
+        return df
+
+    except Exception:
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=60, show_spinner=False)
 def get_multivariate_anomalies(settings: Settings) -> pd.DataFrame:
     """Return anomalous proxies with full feature breakdown from Isolation Forest."""
     flux = f'''
