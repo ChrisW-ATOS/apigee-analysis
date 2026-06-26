@@ -1,0 +1,396 @@
+<mxfile host="app.diagrams.net">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 1 — TITLE
+       ═══════════════════════════════════════════════════════════ -->
+  <diagram name="01 — Title" id="s01">
+    <mxGraphModel pageWidth="1654" pageHeight="930" background="#1E1B4B" grid="0" guides="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <!-- Background -->
+        <mxCell id="bg" value="" style="fillColor=#1E1B4B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="930" as="geometry"/></mxCell>
+        <!-- Orange accent bar top -->
+        <mxCell id="bar" value="" style="fillColor=#E07040;strokeColor=none;rounded=0;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="8" as="geometry"/></mxCell>
+        <!-- Left colour panel -->
+        <mxCell id="panel" value="" style="fillColor=#E07040;strokeColor=none;opacity=15;" vertex="1" parent="1"><mxGeometry x="0" y="8" width="6" height="922" as="geometry"/></mxCell>
+        <!-- Decorative circle top-right -->
+        <mxCell id="deco1" value="" style="ellipse;fillColor=#E07040;strokeColor=none;opacity=8;" vertex="1" parent="1"><mxGeometry x="1300" y="-200" width="600" height="600" as="geometry"/></mxCell>
+        <mxCell id="deco2" value="" style="ellipse;fillColor=#F59E0B;strokeColor=none;opacity=6;" vertex="1" parent="1"><mxGeometry x="1450" y="500" width="400" height="400" as="geometry"/></mxCell>
+
+        <!-- Eyebrow -->
+        <mxCell id="eyebrow" value="MTN API INTELLIGENCE PLATFORM" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#E07040;letterSpacing=3;" vertex="1" parent="1"><mxGeometry x="80" y="260" width="500" height="24" as="geometry"/></mxCell>
+
+        <!-- Main title -->
+        <mxCell id="title" value="From Raw Data to&lt;br&gt;AI-Powered Insight" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=64;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="80" y="296" width="900" height="240" as="geometry"/></mxCell>
+
+        <!-- Divider line -->
+        <mxCell id="div" value="" style="fillColor=#E07040;strokeColor=none;rounded=0;" vertex="1" parent="1"><mxGeometry x="80" y="556" width="120" height="4" as="geometry"/></mxCell>
+
+        <!-- Subtitle -->
+        <mxCell id="sub" value="Automated anomaly detection, predictive alerting, and AI-generated&lt;br&gt;incident briefs across 15 MTN Operating Companies." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=18;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="80" y="574" width="760" height="80" as="geometry"/></mxCell>
+
+        <!-- Stat pills -->
+        <mxCell id="p1" value="303 API Proxies" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;strokeWidth=1;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="80" y="690" width="160" height="40" as="geometry"/></mxCell>
+        <mxCell id="p2" value="15 OpCos" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;strokeWidth=1;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="256" y="690" width="120" height="40" as="geometry"/></mxCell>
+        <mxCell id="p3" value="Hourly · Automated" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;strokeWidth=1;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="392" y="690" width="180" height="40" as="geometry"/></mxCell>
+        <mxCell id="p4" value="Powered by Claude AI" style="rounded=1;fillColor=#E07040;strokeColor=none;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="588" y="690" width="190" height="40" as="geometry"/></mxCell>
+
+        <!-- Slide number -->
+        <mxCell id="pg" value="1 / 8" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=bottom;fontSize=11;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="1554" y="890" width="80" height="24" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 2 — THE PROBLEM
+       ═══════════════════════════════════════════════════════════ -->
+  <diagram name="02 — The Problem" id="s02">
+    <mxGraphModel pageWidth="1654" pageHeight="930" background="#1E1B4B" grid="0" guides="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="fillColor=#1E1B4B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="930" as="geometry"/></mxCell>
+        <mxCell id="bar" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="8" as="geometry"/></mxCell>
+        <mxCell id="eyebrow" value="THE PROBLEM" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#E07040;letterSpacing=3;" vertex="1" parent="1"><mxGeometry x="80" y="50" width="200" height="20" as="geometry"/></mxCell>
+        <mxCell id="title" value="Monitoring at MTN's scale&lt;br&gt;breaks manual processes." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=40;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="80" y="78" width="900" height="130" as="geometry"/></mxCell>
+        <mxCell id="div" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="80" y="216" width="80" height="4" as="geometry"/></mxCell>
+
+        <!-- Stat callouts -->
+        <mxCell id="stat1" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="80" y="260" width="460" height="180" as="geometry"/></mxCell>
+        <mxCell id="st1n" value="300+" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=64;fontStyle=1;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="104" y="270" width="200" height="90" as="geometry"/></mxCell>
+        <mxCell id="st1l" value="API proxies across 15 countries&lt;br&gt;processing millions of calls per hour" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=14;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="104" y="360" width="400" height="60" as="geometry"/></mxCell>
+
+        <mxCell id="stat2" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="580" y="260" width="460" height="180" as="geometry"/></mxCell>
+        <mxCell id="st2n" value="Hours" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=64;fontStyle=1;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="604" y="270" width="300" height="90" as="geometry"/></mxCell>
+        <mxCell id="st2l" value="Average time to detect and diagnose&lt;br&gt;an incident without automated monitoring" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=14;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="604" y="360" width="420" height="60" as="geometry"/></mxCell>
+
+        <mxCell id="stat3" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="1080" y="260" width="460" height="180" as="geometry"/></mxCell>
+        <mxCell id="st3n" value="Reactive" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=52;fontStyle=1;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="1104" y="274" width="420" height="80" as="geometry"/></mxCell>
+        <mxCell id="st3l" value="Incidents discovered by customers&lt;br&gt;before the operations team" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=14;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="1104" y="360" width="400" height="60" as="geometry"/></mxCell>
+
+        <!-- Pain point list -->
+        <mxCell id="pp_title" value="Root causes:" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=16;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="80" y="480" width="200" height="28" as="geometry"/></mxCell>
+        <mxCell id="pp1" value="No API for bulk analytics extraction — data locked in Apigee's web UI" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontColor=#A0A0C8;" vertex="1" parent="1"><mxGeometry x="80" y="518" width="700" height="28" as="geometry"/></mxCell>
+        <mxCell id="pp2" value="Daily traffic patterns mask true anomalies — static thresholds fire false positives constantly" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontColor=#A0A0C8;" vertex="1" parent="1"><mxGeometry x="80" y="554" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="pp3" value="No blast radius visibility — engineers don't know which developer apps are affected until they investigate manually" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontColor=#A0A0C8;" vertex="1" parent="1"><mxGeometry x="80" y="590" width="900" height="28" as="geometry"/></mxCell>
+        <mxCell id="pp4" value="Structured data but no language — incident data exists in InfluxDB but requires analysis to become actionable" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontColor=#A0A0C8;" vertex="1" parent="1"><mxGeometry x="80" y="626" width="900" height="28" as="geometry"/></mxCell>
+
+        <mxCell id="pg" value="2 / 8" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontSize=11;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="1554" y="890" width="80" height="24" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 3 — HOW IT WORKS
+       ═══════════════════════════════════════════════════════════ -->
+  <diagram name="03 — How It Works" id="s03">
+    <mxGraphModel pageWidth="1654" pageHeight="930" background="#1E1B4B" grid="0" guides="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="fillColor=#1E1B4B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="930" as="geometry"/></mxCell>
+        <mxCell id="bar" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="8" as="geometry"/></mxCell>
+        <mxCell id="eyebrow" value="THE SOLUTION" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#E07040;letterSpacing=3;" vertex="1" parent="1"><mxGeometry x="80" y="50" width="200" height="20" as="geometry"/></mxCell>
+        <mxCell id="title" value="A fully automated pipeline — from&lt;br&gt;Apigee to actionable AI intelligence." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=36;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="80" y="78" width="900" height="120" as="geometry"/></mxCell>
+        <mxCell id="div" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="80" y="208" width="80" height="4" as="geometry"/></mxCell>
+
+        <!-- Step boxes -->
+        <mxCell id="s1" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="60" y="260" width="340" height="500" as="geometry"/></mxCell>
+        <mxCell id="s1n" value="01" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=48;fontStyle=1;fontColor=#E07040;opacity=40;" vertex="1" parent="1"><mxGeometry x="76" y="266" width="100" height="70" as="geometry"/></mxCell>
+        <mxCell id="s1t" value="Automated&lt;br&gt;Data Fetch" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=22;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="76" y="340" width="300" height="70" as="geometry"/></mxCell>
+        <mxCell id="s1b" value="Playwright drives the Apigee portal hourly: logs in with 2FA, submits a background report job, monitors completion, downloads and normalises the CSV." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="76" y="424" width="308" height="200" as="geometry"/></mxCell>
+        <mxCell id="s1t2" value="apigee-fetch repo" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#E07040;fontStyle=2;" vertex="1" parent="1"><mxGeometry x="76" y="710" width="200" height="20" as="geometry"/></mxCell>
+
+        <mxCell id="a12" value="" style="endArrow=block;endFill=1;strokeColor=#E07040;strokeWidth=4;fillColor=#E07040;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="400" y="510" as="sourcePoint"/><mxPoint x="460" y="510" as="targetPoint"/></mxGeometry></mxCell>
+
+        <mxCell id="s2" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="460" y="260" width="340" height="500" as="geometry"/></mxCell>
+        <mxCell id="s2n" value="02" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=48;fontStyle=1;fontColor=#E07040;opacity=40;" vertex="1" parent="1"><mxGeometry x="476" y="266" width="100" height="70" as="geometry"/></mxCell>
+        <mxCell id="s2t" value="Time-Series&lt;br&gt;Storage" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=22;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="476" y="340" width="300" height="70" as="geometry"/></mxCell>
+        <mxCell id="s2b" value="InfluxDB v2 stores every API call's metadata as time-series: proxy, app, status code, country, traffic volume. Retained indefinitely for 7-day rolling baselines." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="476" y="424" width="308" height="200" as="geometry"/></mxCell>
+        <mxCell id="s2t2" value="InfluxDB v2 · ~400k pts/day" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#E07040;fontStyle=2;" vertex="1" parent="1"><mxGeometry x="476" y="710" width="260" height="20" as="geometry"/></mxCell>
+
+        <mxCell id="a23" value="" style="endArrow=block;endFill=1;strokeColor=#E07040;strokeWidth=4;fillColor=#E07040;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="800" y="510" as="sourcePoint"/><mxPoint x="860" y="510" as="targetPoint"/></mxGeometry></mxCell>
+
+        <mxCell id="s3" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="860" y="260" width="340" height="500" as="geometry"/></mxCell>
+        <mxCell id="s3n" value="03" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=48;fontStyle=1;fontColor=#E07040;opacity=40;" vertex="1" parent="1"><mxGeometry x="876" y="266" width="100" height="70" as="geometry"/></mxCell>
+        <mxCell id="s3t" value="AI Analysis&lt;br&gt;Engine" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=22;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="876" y="340" width="300" height="70" as="geometry"/></mxCell>
+        <mxCell id="s3b" value="STL decomposition removes daily seasonality. Z-score flags statistical anomalies. Isolation Forest catches unusual metric combinations. All run per-proxy per-hour." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="876" y="424" width="308" height="200" as="geometry"/></mxCell>
+        <mxCell id="s3t2" value="apigee-analysis repo" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#E07040;fontStyle=2;" vertex="1" parent="1"><mxGeometry x="876" y="710" width="220" height="20" as="geometry"/></mxCell>
+
+        <mxCell id="a34" value="" style="endArrow=block;endFill=1;strokeColor=#E07040;strokeWidth=4;fillColor=#E07040;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="1200" y="510" as="sourcePoint"/><mxPoint x="1260" y="510" as="targetPoint"/></mxGeometry></mxCell>
+
+        <mxCell id="s4" value="" style="rounded=1;fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="1260" y="260" width="340" height="500" as="geometry"/></mxCell>
+        <mxCell id="s4n" value="04" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=48;fontStyle=1;fontColor=#FFFFFF;opacity=40;" vertex="1" parent="1"><mxGeometry x="1276" y="266" width="100" height="70" as="geometry"/></mxCell>
+        <mxCell id="s4t" value="Incident&lt;br&gt;Intelligence" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=22;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="1276" y="340" width="300" height="70" as="geometry"/></mxCell>
+        <mxCell id="s4b" value="Claude API synthesises all anomaly signals into a plain-English incident brief: summary, root cause hypothesis, severity, blast radius, and recommended action." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;opacity=90;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="1276" y="424" width="308" height="200" as="geometry"/></mxCell>
+        <mxCell id="s4t2" value="Claude AI · Anthropic" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#FFFFFF;fontStyle=3;opacity=80;" vertex="1" parent="1"><mxGeometry x="1276" y="710" width="200" height="20" as="geometry"/></mxCell>
+
+        <mxCell id="pg" value="3 / 8" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontSize=11;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="1554" y="890" width="80" height="24" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 4 — AI DETECTION METHODS
+       ═══════════════════════════════════════════════════════════ -->
+  <diagram name="04 — AI Detection" id="s04">
+    <mxGraphModel pageWidth="1654" pageHeight="930" background="#1E1B4B" grid="0" guides="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="fillColor=#1E1B4B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="930" as="geometry"/></mxCell>
+        <mxCell id="bar" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="8" as="geometry"/></mxCell>
+        <mxCell id="eyebrow" value="AI ANALYSIS ENGINE" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#E07040;letterSpacing=3;" vertex="1" parent="1"><mxGeometry x="80" y="50" width="300" height="20" as="geometry"/></mxCell>
+        <mxCell id="title" value="Five techniques — each catching&lt;br&gt;what the others miss." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=36;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="80" y="78" width="900" height="110" as="geometry"/></mxCell>
+        <mxCell id="div" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="80" y="196" width="80" height="4" as="geometry"/></mxCell>
+
+        <!-- Technique cards - row 1 -->
+        <mxCell id="c1" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;" vertex="1" parent="1"><mxGeometry x="80" y="230" width="462" height="200" as="geometry"/></mxCell>
+        <mxCell id="c1i" value="∿" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=40;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="100" y="238" width="60" height="60" as="geometry"/></mxCell>
+        <mxCell id="c1t" value="STL Decomposition" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=17;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="164" y="246" width="360" height="30" as="geometry"/></mxCell>
+        <mxCell id="c1b" value="Splits each proxy's traffic into trend + seasonal + residual. Z-scores applied to the residual only — so Monday morning peaks don't trigger false alerts." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="100" y="290" width="422" height="120" as="geometry"/></mxCell>
+
+        <mxCell id="c2" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;" vertex="1" parent="1"><mxGeometry x="596" y="230" width="462" height="200" as="geometry"/></mxCell>
+        <mxCell id="c2i" value="σ" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=40;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="616" y="238" width="60" height="60" as="geometry"/></mxCell>
+        <mxCell id="c2t" value="Z-Score Anomaly Detection" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=17;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="680" y="246" width="360" height="30" as="geometry"/></mxCell>
+        <mxCell id="c2b" value="Flags values beyond ±3σ on traffic volume, 4xx client error rate, and 5xx server error rate — independently per proxy per hour. Threshold: 0.3% false positive rate." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="616" y="290" width="422" height="120" as="geometry"/></mxCell>
+
+        <mxCell id="c3" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;" vertex="1" parent="1"><mxGeometry x="1112" y="230" width="462" height="200" as="geometry"/></mxCell>
+        <mxCell id="c3i" value="→" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=40;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="1132" y="238" width="60" height="60" as="geometry"/></mxCell>
+        <mxCell id="c3t" value="Predictive Alerting" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=17;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1196" y="246" width="360" height="30" as="geometry"/></mxCell>
+        <mxCell id="c3b" value="STL trend + periodic seasonal component projected 2 hours forward. Flags proxies that will breach the anomaly threshold before they get there — proactive vs reactive." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="1132" y="290" width="422" height="120" as="geometry"/></mxCell>
+
+        <!-- Row 2 -->
+        <mxCell id="c4" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;" vertex="1" parent="1"><mxGeometry x="80" y="460" width="720" height="200" as="geometry"/></mxCell>
+        <mxCell id="c4i" value="⬡" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=40;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="100" y="468" width="60" height="60" as="geometry"/></mxCell>
+        <mxCell id="c4t" value="Isolation Forest — Multivariate Detection" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=17;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="164" y="476" width="620" height="30" as="geometry"/></mxCell>
+        <mxCell id="c4b" value="Global model trained on 5 features per proxy per hour: [traffic_z, client_z, server_z, client_rate, server_rate]. Detects unusual combinations invisible to univariate Z-scores — e.g. traffic normal but error mix flips from 4xx to 5xx, or two correlated proxies suddenly diverge. Retrained daily. scikit-learn, zero new dependencies." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="100" y="520" width="680" height="120" as="geometry"/></mxCell>
+
+        <mxCell id="c5" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;" vertex="1" parent="1"><mxGeometry x="854" y="460" width="720" height="200" as="geometry"/></mxCell>
+        <mxCell id="c5i" value="⊕" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=40;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="874" y="468" width="60" height="60" as="geometry"/></mxCell>
+        <mxCell id="c5t" value="Sustained Detection + Blast Radius" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=17;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="938" y="476" width="620" height="30" as="geometry"/></mxCell>
+        <mxCell id="c5b" value="Consecutive anomalous hours tracked per proxy — sustained=true after 2+ hours. Eliminates alert fatigue from self-resolving blips. Blast radius query maps each anomalous proxy to every developer app and OpCo that called it, ranked by call volume." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="874" y="520" width="680" height="120" as="geometry"/></mxCell>
+
+        <mxCell id="pg" value="4 / 8" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontSize=11;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="1554" y="890" width="80" height="24" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 5 — CLAUDE INCIDENT INTELLIGENCE
+       ═══════════════════════════════════════════════════════════ -->
+  <diagram name="05 — Claude AI" id="s05">
+    <mxGraphModel pageWidth="1654" pageHeight="930" background="#1E1B4B" grid="0" guides="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="fillColor=#1E1B4B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="930" as="geometry"/></mxCell>
+        <mxCell id="bar" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="8" as="geometry"/></mxCell>
+        <mxCell id="eyebrow" value="CLAUDE AI INTEGRATION" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#E07040;letterSpacing=3;" vertex="1" parent="1"><mxGeometry x="80" y="50" width="320" height="20" as="geometry"/></mxCell>
+        <mxCell id="title" value="Turning structured anomaly data&lt;br&gt;into actionable incident briefs." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=36;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="80" y="78" width="900" height="110" as="geometry"/></mxCell>
+        <mxCell id="div" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="80" y="196" width="80" height="4" as="geometry"/></mxCell>
+
+        <!-- Flow -->
+        <mxCell id="f1" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;" vertex="1" parent="1"><mxGeometry x="80" y="230" width="340" height="260" as="geometry"/></mxCell>
+        <mxCell id="f1t" value="Structured Input" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=16;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="80" y="248" width="340" height="28" as="geometry"/></mxCell>
+        <mxCell id="f1b" value="· Active anomalies + Z-scores&lt;br&gt;· Sustained flags + consecutive hours&lt;br&gt;· Error class (client 4xx vs server 5xx)&lt;br&gt;· Top blast radius entries&lt;br&gt;· Country health anomalies" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="100" y="288" width="300" height="180" as="geometry"/></mxCell>
+
+        <mxCell id="fa1" value="" style="endArrow=block;endFill=1;strokeColor=#E07040;strokeWidth=5;fillColor=#E07040;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="420" y="360" as="sourcePoint"/><mxPoint x="500" y="360" as="targetPoint"/></mxGeometry></mxCell>
+
+        <mxCell id="f2" value="" style="rounded=1;fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="500" y="230" width="260" height="260" as="geometry"/></mxCell>
+        <mxCell id="f2t" value="Claude&lt;br&gt;claude-opus-4-8" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=20;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="500" y="310" width="260" height="80" as="geometry"/></mxCell>
+        <mxCell id="f2s" value="Only fires when&lt;br&gt;anomalies exist" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontColor=#FFFFFF;opacity=80;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="500" y="400" width="260" height="60" as="geometry"/></mxCell>
+
+        <mxCell id="fa2" value="" style="endArrow=block;endFill=1;strokeColor=#E07040;strokeWidth=5;fillColor=#E07040;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="760" y="360" as="sourcePoint"/><mxPoint x="840" y="360" as="targetPoint"/></mxGeometry></mxCell>
+
+        <mxCell id="f3" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="840" y="230" width="340" height="260" as="geometry"/></mxCell>
+        <mxCell id="f3t" value="Structured JSON Output" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=16;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="840" y="248" width="340" height="28" as="geometry"/></mxCell>
+        <mxCell id="f3b" value="· Summary — plain English, 2-3 sentences&lt;br&gt;· Root cause — client vs server hypothesis&lt;br&gt;· Severity — low / medium / high&lt;br&gt;· Recommended action — one concrete step" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="860" y="288" width="300" height="180" as="geometry"/></mxCell>
+
+        <!-- Example brief card -->
+        <mxCell id="ex" value="" style="rounded=1;fillColor=#1A1A35;strokeColor=#E07040;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="80" y="540" width="1494" height="300" as="geometry"/></mxCell>
+        <mxCell id="ext" value="LIVE EXAMPLE OUTPUT" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontStyle=1;fontColor=#E07040;letterSpacing=2;" vertex="1" parent="1"><mxGeometry x="106" y="556" width="300" height="18" as="geometry"/></mxCell>
+        <mxCell id="exs" value="&quot;10 anomalies detected at 2026-06-26T08:00Z. The highest server-error signal is TMF621_TroubleTicket_prod at 11.11% (z=5.02), with the Nigeria consent-monetization-sms proxy showing a 62.56% client error rate (z=4.05). The Uganda customer-subscriptions proxy has the widest blast radius, affecting tchokokash and timwe-prod across CMR, GHA and ZMB.&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontColor=#E8E8F8;whiteSpace=wrap;fontStyle=2;" vertex="1" parent="1"><mxGeometry x="106" y="582" width="1440" height="100" as="geometry"/></mxCell>
+        <mxCell id="exrc" value="Root cause: &quot;Two distinct issues — 5xx on TMF621 indicates a backend dependency failure; 4xx on Nigeria consent-monetization-sms points to malformed requests or auth failures from calling applications.&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=14;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="106" y="690" width="1100" height="60" as="geometry"/></mxCell>
+        <mxCell id="exsev" value="HIGH" style="rounded=1;fillColor=#B85450;strokeColor=none;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1436" y="556" width="120" height="36" as="geometry"/></mxCell>
+        <mxCell id="exact" value="Action: Investigate TMF621 backend health and triage the Nigeria 4xx surge for a bad client deployment." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#F4A261;whiteSpace=wrap;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="106" y="758" width="900" height="60" as="geometry"/></mxCell>
+
+        <mxCell id="pg" value="5 / 8" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontSize=11;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="1554" y="890" width="80" height="24" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 6 — LIVE DASHBOARD
+       ═══════════════════════════════════════════════════════════ -->
+  <diagram name="06 — Dashboard" id="s06">
+    <mxGraphModel pageWidth="1654" pageHeight="930" background="#1E1B4B" grid="0" guides="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="fillColor=#1E1B4B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="930" as="geometry"/></mxCell>
+        <mxCell id="bar" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="8" as="geometry"/></mxCell>
+        <mxCell id="eyebrow" value="LIVE DASHBOARD" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#E07040;letterSpacing=3;" vertex="1" parent="1"><mxGeometry x="80" y="50" width="240" height="20" as="geometry"/></mxCell>
+        <mxCell id="title" value="Streamlit — four views, live data,&lt;br&gt;60-second cache refresh." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=36;fontStyle=1;fontColor=#FFFFFF;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="80" y="78" width="900" height="110" as="geometry"/></mxCell>
+        <mxCell id="url" value="api-monitoring.walleyco.de" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=18;fontColor=#E07040;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="80" y="196" width="400" height="30" as="geometry"/></mxCell>
+
+        <!-- Dashboard screen mockup -->
+        <mxCell id="screen" value="" style="rounded=1;fillColor=#0F0F2A;strokeColor=#3A3770;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="80" y="240" width="1494" height="620" as="geometry"/></mxCell>
+
+        <!-- Sidebar -->
+        <mxCell id="sidebar" value="" style="fillColor=#1B2A4A;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="80" y="240" width="220" height="620" as="geometry"/></mxCell>
+        <mxCell id="sbt" value="MTN API Intelligence" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="100" y="270" width="180" height="28" as="geometry"/></mxCell>
+        <mxCell id="sbdiv" value="" style="fillColor=#3A4A6A;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="100" y="308" width="180" height="1" as="geometry"/></mxCell>
+        <mxCell id="sb1" value="● Incident Brief" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#FFCB05;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="100" y="322" width="180" height="24" as="geometry"/></mxCell>
+        <mxCell id="sb2" value="  Country Health" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="100" y="350" width="180" height="24" as="geometry"/></mxCell>
+        <mxCell id="sb3" value="  Anomaly Explorer" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="100" y="378" width="180" height="24" as="geometry"/></mxCell>
+        <mxCell id="sb4" value="  Blast Radius" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="100" y="406" width="180" height="24" as="geometry"/></mxCell>
+
+        <!-- Main content area -->
+        <!-- Top metrics row -->
+        <mxCell id="m1" value="" style="rounded=1;fillColor=#1E1E3A;strokeColor=#2A2A4A;" vertex="1" parent="1"><mxGeometry x="320" y="260" width="180" height="80" as="geometry"/></mxCell>
+        <mxCell id="m1v" value="26" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=32;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="320" y="268" width="180" height="40" as="geometry"/></mxCell>
+        <mxCell id="m1l" value="Active Anomalies" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="320" y="316" width="180" height="18" as="geometry"/></mxCell>
+
+        <mxCell id="m2" value="" style="rounded=1;fillColor=#1E1E3A;strokeColor=#2A2A4A;" vertex="1" parent="1"><mxGeometry x="516" y="260" width="180" height="80" as="geometry"/></mxCell>
+        <mxCell id="m2v" value="8" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=32;fontStyle=1;fontColor=#EF4444;" vertex="1" parent="1"><mxGeometry x="516" y="268" width="180" height="40" as="geometry"/></mxCell>
+        <mxCell id="m2l" value="Sustained" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="516" y="316" width="180" height="18" as="geometry"/></mxCell>
+
+        <mxCell id="m3" value="" style="rounded=1;fillColor=#1E1E3A;strokeColor=#2A2A4A;" vertex="1" parent="1"><mxGeometry x="712" y="260" width="180" height="80" as="geometry"/></mxCell>
+        <mxCell id="m3v" value="21" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=32;fontStyle=1;fontColor=#F59E0B;" vertex="1" parent="1"><mxGeometry x="712" y="268" width="180" height="40" as="geometry"/></mxCell>
+        <mxCell id="m3l" value="Multivariate Flags" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="712" y="316" width="180" height="18" as="geometry"/></mxCell>
+
+        <!-- Severity badge card -->
+        <mxCell id="brief_card" value="" style="rounded=1;fillColor=#1E1E3A;strokeColor=#B85450;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="320" y="360" width="880" height="180" as="geometry"/></mxCell>
+        <mxCell id="bc_sev" value="MEDIUM" style="rounded=1;fillColor=#D97706;strokeColor=none;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1100" y="374" width="80" height="24" as="geometry"/></mxCell>
+        <mxCell id="bc_label" value="INCIDENT BRIEF · 2026-06-26 08:00 UTC" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#8890A8;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="340" y="374" width="400" height="18" as="geometry"/></mxCell>
+        <mxCell id="bc_text" value="10 anomalies detected. TMF621_TroubleTicket_prod showing 11.11% server errors (z=5.02). Nigeria consent-monetization-sms at 62.56% client error rate. Uganda customer-subscriptions has widest blast radius." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#E8E8F8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="340" y="398" width="840" height="80" as="geometry"/></mxCell>
+        <mxCell id="bc_act" value="Action: Investigate TMF621 backend and triage Nigeria 4xx surge." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#F4A261;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="340" y="492" width="840" height="30" as="geometry"/></mxCell>
+
+        <!-- Table preview -->
+        <mxCell id="tbl_hdr" value="" style="fillColor=#252540;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="320" y="560" width="880" height="30" as="geometry"/></mxCell>
+        <mxCell id="tbl_h1" value="API Proxy" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="336" y="562" width="300" height="26" as="geometry"/></mxCell>
+        <mxCell id="tbl_h2" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="660" y="562" width="100" height="26" as="geometry"/></mxCell>
+        <mxCell id="tbl_h3" value="Z-Score" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="780" y="562" width="80" height="26" as="geometry"/></mxCell>
+        <mxCell id="tbl_h4" value="Sustained" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1060" y="562" width="120" height="26" as="geometry"/></mxCell>
+
+        <mxCell id="tr1" value="edgemicro_za...consent-validation-v1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="336" y="596" width="310" height="22" as="geometry"/></mxCell>
+        <mxCell id="tr1t" value="Error Rate (server)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="660" y="596" width="140" height="22" as="geometry"/></mxCell>
+        <mxCell id="tr1z" value="+9.47" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#EF4444;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="780" y="596" width="80" height="22" as="geometry"/></mxCell>
+        <mxCell id="tr1s" value="✓" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1078" y="596" width="40" height="22" as="geometry"/></mxCell>
+
+        <mxCell id="tr2" value="edgemicro_uganda...customer-subscriptions_v2" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="336" y="624" width="310" height="22" as="geometry"/></mxCell>
+        <mxCell id="tr2t" value="Error Rate (client)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="660" y="624" width="140" height="22" as="geometry"/></mxCell>
+        <mxCell id="tr2z" value="+6.44" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#EF4444;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="780" y="624" width="80" height="22" as="geometry"/></mxCell>
+
+        <!-- Right panel - mini map placeholder -->
+        <mxCell id="map_bg" value="" style="rounded=1;fillColor=#1E1E3A;strokeColor=#2A2A4A;" vertex="1" parent="1"><mxGeometry x="1220" y="360" width="334" height="380" as="geometry"/></mxCell>
+        <mxCell id="map_t" value="Country Health" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=13;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1220" y="372" width="334" height="24" as="geometry"/></mxCell>
+        <mxCell id="mapg1" value="🟢 GHA  Z: −0.4" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1240" y="408" width="200" height="22" as="geometry"/></mxCell>
+        <mxCell id="mapg2" value="🔴 NGA  Z: +3.8" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1240" y="434" width="200" height="22" as="geometry"/></mxCell>
+        <mxCell id="mapg3" value="🟡 UGA  Z: +1.9" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1240" y="460" width="200" height="22" as="geometry"/></mxCell>
+        <mxCell id="mapg4" value="🟢 ZAF  Z: +0.6" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1240" y="486" width="200" height="22" as="geometry"/></mxCell>
+        <mxCell id="mapg5" value="🟢 CMR  Z: −0.2" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1240" y="512" width="200" height="22" as="geometry"/></mxCell>
+        <mxCell id="mapg6" value="🟢 ZMB  Z: +0.1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1240" y="538" width="200" height="22" as="geometry"/></mxCell>
+
+        <mxCell id="pg" value="6 / 8" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontSize=11;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="1554" y="890" width="80" height="24" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 7 — AI ROADMAP
+       ═══════════════════════════════════════════════════════════ -->
+  <diagram name="07 — AI Roadmap" id="s07">
+    <mxGraphModel pageWidth="1654" pageHeight="930" background="#1E1B4B" grid="0" guides="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="fillColor=#1E1B4B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="930" as="geometry"/></mxCell>
+        <mxCell id="bar" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="8" as="geometry"/></mxCell>
+        <mxCell id="eyebrow" value="WHAT'S NEXT" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#E07040;letterSpacing=3;" vertex="1" parent="1"><mxGeometry x="80" y="50" width="240" height="20" as="geometry"/></mxCell>
+        <mxCell id="title" value="Expanding the AI layer." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=40;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="80" y="78" width="800" height="70" as="geometry"/></mxCell>
+        <mxCell id="div" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="80" y="158" width="80" height="4" as="geometry"/></mxCell>
+
+        <!-- Timeline -->
+        <mxCell id="tl" value="" style="fillColor=#3A3770;strokeColor=none;rounded=1;" vertex="1" parent="1"><mxGeometry x="80" y="200" width="1494" height="4" as="geometry"/></mxCell>
+
+        <!-- Near-term -->
+        <mxCell id="t1_dot" value="" style="ellipse;fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="120" y="190" width="24" height="24" as="geometry"/></mxCell>
+        <mxCell id="t1_label" value="NOW" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontStyle=1;fontColor=#E07040;letterSpacing=2;" vertex="1" parent="1"><mxGeometry x="80" y="224" width="100" height="20" as="geometry"/></mxCell>
+
+        <mxCell id="nt_title" value="Live Today" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=18;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="80" y="256" width="380" height="28" as="geometry"/></mxCell>
+        <mxCell id="nt1" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="80" y="292" width="380" height="56" as="geometry"/></mxCell>
+        <mxCell id="nt1t" value="STL anomaly detection" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="100" y="298" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="nt1b" value="Seasonality-aware Z-scores, 4xx/5xx split" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="100" y="320" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="nt2" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="80" y="360" width="380" height="56" as="geometry"/></mxCell>
+        <mxCell id="nt2t" value="Isolation Forest (multivariate)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="100" y="366" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="nt2b" value="Unusual metric combinations, radar chart viz" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="100" y="388" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="nt3" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="80" y="428" width="380" height="56" as="geometry"/></mxCell>
+        <mxCell id="nt3t" value="Claude incident briefs" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="100" y="434" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="nt3b" value="NL summary, root cause, severity, action" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="100" y="456" width="340" height="20" as="geometry"/></mxCell>
+
+        <!-- Mid-term -->
+        <mxCell id="t2_dot" value="" style="ellipse;fillColor=#F59E0B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="620" y="190" width="24" height="24" as="geometry"/></mxCell>
+        <mxCell id="t2_label" value="NEXT" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontStyle=1;fontColor=#F59E0B;letterSpacing=2;" vertex="1" parent="1"><mxGeometry x="580" y="224" width="100" height="20" as="geometry"/></mxCell>
+
+        <mxCell id="mt_title" value="Near-Term" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=18;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="580" y="256" width="380" height="28" as="geometry"/></mxCell>
+        <mxCell id="mt1" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#F59E0B;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="580" y="292" width="380" height="56" as="geometry"/></mxCell>
+        <mxCell id="mt1t" value="Incident clustering" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="600" y="298" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="mt1b" value="Group 8 Nigeria KYC proxies into 1 incident" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="600" y="320" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="mt2" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#F59E0B;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="580" y="360" width="380" height="56" as="geometry"/></mxCell>
+        <mxCell id="mt2t" value="RAG-powered incident memory" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="600" y="366" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="mt2b" value="&quot;Same pattern as March outage — resolved by X&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="600" y="388" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="mt3" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#F59E0B;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="580" y="428" width="380" height="56" as="geometry"/></mxCell>
+        <mxCell id="mt3t" value="Slack / Teams / PagerDuty push" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="600" y="434" width="340" height="20" as="geometry"/></mxCell>
+        <mxCell id="mt3b" value="Brief delivered to on-call engineer instantly" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="600" y="456" width="340" height="20" as="geometry"/></mxCell>
+
+        <!-- Long-term -->
+        <mxCell id="t3_dot" value="" style="ellipse;fillColor=#8888CC;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="1120" y="190" width="24" height="24" as="geometry"/></mxCell>
+        <mxCell id="t3_label" value="FUTURE" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontStyle=1;fontColor=#8888CC;letterSpacing=2;" vertex="1" parent="1"><mxGeometry x="1080" y="224" width="100" height="20" as="geometry"/></mxCell>
+
+        <mxCell id="lt_title" value="Strategic" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=18;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1080" y="256" width="380" height="28" as="geometry"/></mxCell>
+        <mxCell id="lt1" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#8888CC;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="1080" y="292" width="454" height="56" as="geometry"/></mxCell>
+        <mxCell id="lt1t" value="NL query interface" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1100" y="298" width="414" height="20" as="geometry"/></mxCell>
+        <mxCell id="lt1b" value="&quot;Worst Ghana week in 3 months?&quot; — text-to-Flux" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="1100" y="320" width="414" height="20" as="geometry"/></mxCell>
+        <mxCell id="lt2" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#8888CC;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="1080" y="360" width="454" height="56" as="geometry"/></mxCell>
+        <mxCell id="lt2t" value="Agentic remediation" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1100" y="366" width="414" height="20" as="geometry"/></mxCell>
+        <mxCell id="lt2b" value="AI agent executes runbooks autonomously" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="1100" y="388" width="414" height="20" as="geometry"/></mxCell>
+        <mxCell id="lt3" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#8888CC;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="1080" y="428" width="454" height="56" as="geometry"/></mxCell>
+        <mxCell id="lt3t" value="Revenue impact scoring" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1100" y="434" width="414" height="20" as="geometry"/></mxCell>
+        <mxCell id="lt3b" value="Every alert includes estimated revenue at risk" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#8890A8;" vertex="1" parent="1"><mxGeometry x="1100" y="456" width="414" height="20" as="geometry"/></mxCell>
+
+        <!-- Bottom callout -->
+        <mxCell id="bot" value="" style="rounded=1;fillColor=#2D2A5E;strokeColor=#3A3770;" vertex="1" parent="1"><mxGeometry x="80" y="560" width="1494" height="100" as="geometry"/></mxCell>
+        <mxCell id="botl" value="Consumer impact direction" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=14;fontStyle=1;fontColor=#E07040;" vertex="1" parent="1"><mxGeometry x="106" y="574" width="400" height="24" as="geometry"/></mxCell>
+        <mxCell id="botb" value="Cross-referencing API failure data with CRM, churn, and support tickets creates a revenue-at-risk signal per incident. Every API outage becomes a business metric, not just a technical one." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontColor=#A0A0C8;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="106" y="602" width="1462" height="46" as="geometry"/></mxCell>
+
+        <mxCell id="pg" value="7 / 8" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontSize=11;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="1554" y="890" width="80" height="24" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 8 — LIVE DEMO
+       ═══════════════════════════════════════════════════════════ -->
+  <diagram name="08 — Demo" id="s08">
+    <mxGraphModel pageWidth="1654" pageHeight="930" background="#1E1B4B" grid="0" guides="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="fillColor=#1E1B4B;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="930" as="geometry"/></mxCell>
+        <mxCell id="bar" value="" style="fillColor=#E07040;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1654" height="8" as="geometry"/></mxCell>
+        <mxCell id="deco" value="" style="ellipse;fillColor=#E07040;strokeColor=none;opacity=8;" vertex="1" parent="1"><mxGeometry x="-100" y="400" width="700" height="700" as="geometry"/></mxCell>
+        <mxCell id="deco2" value="" style="ellipse;fillColor=#F59E0B;strokeColor=none;opacity=5;" vertex="1" parent="1"><mxGeometry x="1200" y="-100" width="600" height="600" as="geometry"/></mxCell>
+
+        <mxCell id="title" value="Live Demo" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=80;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="0" y="240" width="1654" height="120" as="geometry"/></mxCell>
+        <mxCell id="url" value="api-monitoring.walleyco.de" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=28;fontColor=#E07040;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="0" y="370" width="1654" height="50" as="geometry"/></mxCell>
+
+        <!-- Feature chips -->
+        <mxCell id="fc1" value="Incident Brief" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="452" y="460" width="160" height="44" as="geometry"/></mxCell>
+        <mxCell id="fc2" value="Country Health Map" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="628" y="460" width="200" height="44" as="geometry"/></mxCell>
+        <mxCell id="fc3" value="Anomaly Explorer" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="844" y="460" width="180" height="44" as="geometry"/></mxCell>
+        <mxCell id="fc4" value="Blast Radius" style="rounded=1;fillColor=#2D2A5E;strokeColor=#E07040;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1040" y="460" width="160" height="44" as="geometry"/></mxCell>
+
+        <!-- Repo links -->
+        <mxCell id="repos" value="github.com/ChrisW-ATOS/apigee-fetch  ·  github.com/ChrisW-ATOS/apigee-analysis" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=14;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="0" y="860" width="1654" height="24" as="geometry"/></mxCell>
+
+        <mxCell id="pg" value="8 / 8" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontSize=11;fontColor=#4A4A70;" vertex="1" parent="1"><mxGeometry x="1554" y="890" width="80" height="24" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>
