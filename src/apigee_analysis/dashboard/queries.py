@@ -156,7 +156,9 @@ def get_error_rate_trend(settings: Settings, top_n: int = 5) -> pd.DataFrame:
     Returns columns: time, proxy, error_class, error_rate, z_score, is_anomaly.
     """
     try:
-        # Top proxies by worst z_score in the same 25h window used for history
+        # Top proxies by worst z_score in the same 25h window used for history.
+        # group() after max() collapses all per-proxy groups into one table so
+        # sort() and limit() operate globally, not per-group.
         top_tables = _query_raw(settings, f'''
         from(bucket: "{settings.anomaly_bucket}")
           |> range(start: -25h)
@@ -164,6 +166,7 @@ def get_error_rate_trend(settings: Settings, top_n: int = 5) -> pd.DataFrame:
           |> filter(fn: (r) => r._field == "z_score")
           |> group(columns: ["apiproxy"])
           |> max()
+          |> group()
           |> sort(columns: ["_value"], desc: true)
           |> limit(n: {top_n})
         ''')
