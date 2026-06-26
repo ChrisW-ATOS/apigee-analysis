@@ -101,13 +101,8 @@ def render(settings: Settings) -> None:
             else:
                 icon = "🟢"
 
-            st.markdown(
-                f"{icon} **{name}**  \n"
-                f"<span style='font-size:12px;color:#64748B;'>"
-                f"Z&nbsp;`{z:+.2f}` · error&nbsp;`{er:.1f}%`"
-                f"</span>",
-                unsafe_allow_html=True,
-            )
+            st.markdown(f"{icon} **{name}**")
+            st.caption(f"Z `{z:+.2f}` · error `{er:.1f}%`")
             st.write("")   # spacing
 
     # Summary metrics
