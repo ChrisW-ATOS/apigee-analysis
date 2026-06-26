@@ -142,22 +142,36 @@ def _multivariate_section(mv_df: pd.DataFrame) -> None:
     st.markdown("**Feature breakdown — top anomalies**")
     cols = st.columns(min(3, len(top)))
     features    = ["traffic_z", "client_z", "server_z", "client_rate", "server_rate"]
-    feat_labels = ["Traffic Z", "Client Z", "Server Z", "Client Rate%", "Server Rate%"]
+    feat_labels = ["Traffic Z", "Client Z", "Server Z", "Client Rate", "Server Rate"]
 
     for idx, (_, row) in enumerate(top.iterrows()):
         col = cols[idx % 3]
         with col:
-            # Scale rates to percentage for display alongside z-scores
+            # Keep rates as fractions (0–1) so they stay on the same order of
+            # magnitude as z-scores. Dynamic axis range ensures nothing clips.
             values = [
                 row["traffic_z"],
                 row["client_z"],
                 row["server_z"],
-                row["client_rate"] * 100,
-                row["server_rate"] * 100,
+                row["client_rate"],
+                row["server_rate"],
             ]
+
+            # Axis must contain all points — pad by 20%, minimum ±3
+            axis_max = max(max(abs(v) for v in values) * 1.2, 3)
+
+            hover = [
+                f"Traffic Z: {row['traffic_z']:+.2f}",
+                f"Client Z: {row['client_z']:+.2f}",
+                f"Server Z: {row['server_z']:+.2f}",
+                f"Client Rate: {row['client_rate']:.1%}",
+                f"Server Rate: {row['server_rate']:.1%}",
+            ]
+
             # Close the polygon
-            values_closed  = values + [values[0]]
-            labels_closed  = feat_labels + [feat_labels[0]]
+            values_closed = values + [values[0]]
+            labels_closed = feat_labels + [feat_labels[0]]
+            hover_closed  = hover + [hover[0]]
 
             fig = go.Figure(go.Scatterpolar(
                 r=values_closed,
@@ -166,10 +180,16 @@ def _multivariate_section(mv_df: pd.DataFrame) -> None:
                 fillcolor="rgba(184, 84, 80, 0.15)",
                 line=dict(color="#B85450", width=2),
                 name=row["proxy"],
+                text=hover_closed,
+                hoverinfo="text",
             ))
             fig.update_layout(
                 polar=dict(
-                    radialaxis=dict(visible=True, range=[-10, 10]),
+                    radialaxis=dict(
+                        visible=True,
+                        range=[-axis_max, axis_max],
+                        tickfont=dict(size=9),
+                    ),
                     angularaxis=dict(tickfont=dict(size=10)),
                 ),
                 showlegend=False,
