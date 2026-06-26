@@ -9,6 +9,7 @@ import pandas as pd
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+from .baseline import zscore_and_forecast
 from .config import Settings
 
 log = logging.getLogger(__name__)
@@ -143,12 +144,7 @@ def _error_rate_points(df: pd.DataFrame, error_class: str,
         if len(rates) < 10:
             continue
 
-        mean   = rates.mean()
-        std    = rates.std()
-        if std == 0:
-            continue
-        latest = rates.iloc[-1]
-        zscore = (latest - mean) / std
+        zscore, _ = zscore_and_forecast(rates, forecast_hours=2)
         is_anomaly = abs(zscore) >= Z_THRESHOLD
 
         prev_consec = (prev or {}).get(("error_rate_anomaly", proxy, error_class), 0)
@@ -162,14 +158,14 @@ def _error_rate_points(df: pd.DataFrame, error_class: str,
             .tag("is_anomaly", str(is_anomaly).lower())
             .tag("sustained", str(sustained).lower())
             .field("z_score", float(round(zscore, 4)))
-            .field("error_rate", float(round(latest, 4)))
-            .field("baseline_mean", float(round(mean, 4)))
+            .field("error_rate", float(round(rates.iloc[-1], 4)))
+            .field("baseline_mean", float(round(rates.mean(), 4)))
             .field("consecutive_hours", consec)
             .time(at, WritePrecision.S)
         )
         if is_anomaly:
             log.warning("ANOMALY error_rate [%s] | proxy=%s z=%.2f rate=%.2f%% | sustained=%s hours=%d",
-                        error_class, proxy, zscore, latest * 100, sustained, consec)
+                        error_class, proxy, zscore, rates.iloc[-1] * 100, sustained, consec)
     return points
 
 
@@ -295,12 +291,7 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
             values = grp["_value"].astype(float)
             if len(values) < 10:
                 continue
-            mean = values.mean()
-            std  = values.std()
-            if std == 0:
-                continue
-            latest = values.iloc[-1]
-            zscore = (latest - mean) / std
+            zscore, forecast_z = zscore_and_forecast(values)
             is_anomaly = abs(zscore) >= Z_THRESHOLD
             prev_consec = prev.get(("traffic_anomaly", proxy, ""), 0)
             consec = (prev_consec + 1) if is_anomaly else 0
@@ -310,11 +301,21 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
                 .tag("is_anomaly", str(is_anomaly).lower())
                 .tag("sustained", str(is_anomaly and consec >= 2).lower())
                 .field("z_score", float(round(zscore, 4)))
-                .field("traffic", float(latest))
-                .field("baseline_mean", float(round(mean, 2)))
+                .field("traffic", float(values.iloc[-1]))
+                .field("baseline_mean", float(round(values.mean(), 2)))
                 .field("consecutive_hours", consec)
                 .time(at, WritePrecision.S)
             )
+            # Predictive alert — flag if forecast also crosses threshold
+            if forecast_z is not None and abs(forecast_z) >= Z_THRESHOLD and not is_anomaly:
+                points.append(
+                    Point("predicted_anomaly")
+                    .tag("apiproxy", proxy)
+                    .tag("measurement", "traffic")
+                    .field("forecast_z_score", float(round(forecast_z, 4)))
+                    .field("hours_until_threshold", 2)
+                    .time(at, WritePrecision.S)
+                )
 
     with _client(settings) as client:
         # Error rates — split by client (4xx) and server (5xx)
