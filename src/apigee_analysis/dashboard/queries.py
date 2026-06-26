@@ -148,6 +148,44 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=60, show_spinner=False)
+def get_multivariate_anomalies(settings: Settings) -> pd.DataFrame:
+    """Return anomalous proxies with full feature breakdown from Isolation Forest."""
+    flux = f'''
+    from(bucket: "{settings.anomaly_bucket}")
+      |> range(start: -4h)
+      |> filter(fn: (r) => r._measurement == "multivariate_anomaly" and r.is_anomaly == "true")
+      |> pivot(rowKey:["_time","apiproxy"], columnKey:["_field"], valueColumn:"_value")
+      |> sort(columns:["anomaly_score"])
+    '''
+    rows = []
+    try:
+        for table in _query_raw(settings, flux):
+            for rec in table.records:
+                proxy = rec.values.get("apiproxy", "")
+                if not proxy:
+                    continue
+                rows.append({
+                    "time":         rec.get_time(),
+                    "proxy":        proxy,
+                    "score":        float(rec.values.get("anomaly_score") or 0),
+                    "traffic_z":    float(rec.values.get("traffic_z") or 0),
+                    "client_z":     float(rec.values.get("client_z") or 0),
+                    "server_z":     float(rec.values.get("server_z") or 0),
+                    "client_rate":  float(rec.values.get("client_rate") or 0),
+                    "server_rate":  float(rec.values.get("server_rate") or 0),
+                })
+    except Exception:
+        return pd.DataFrame()
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    df = df.sort_values("score").drop_duplicates("proxy").reset_index(drop=True)
+    return df
+
+
+@st.cache_data(ttl=60, show_spinner=False)
 def get_predicted_anomalies(settings: Settings) -> pd.DataFrame:
     flux = f'''
     from(bucket: "{settings.anomaly_bucket}")

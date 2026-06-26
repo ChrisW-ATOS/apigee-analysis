@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from apigee_analysis.config import Settings
@@ -77,6 +78,11 @@ def _brief_card(brief: dict) -> None:
 
 
 def _anomaly_table(df: pd.DataFrame) -> None:
+    # Exclude multivariate rows — shown separately below
+    df = df[df["type"] != "Multivariate"].copy()
+    if df.empty:
+        return
+
     display = df.copy()
     display["Z-Score"] = display["z_score"].apply(lambda x: f"{x:+.2f}")
     display["Error Rate"] = display["error_rate"].apply(
@@ -91,27 +97,107 @@ def _anomaly_table(df: pd.DataFrame) -> None:
 
     st.dataframe(
         display[["proxy", "Type", "Z-Score", "Error Rate", "Sustained", "Hours"]].rename(columns={
-            "proxy":   "API Proxy",
-            "Hours":   "Consecutive Hours",
+            "proxy": "API Proxy",
+            "Hours": "Consecutive Hours",
         }),
         use_container_width=True,
         hide_index=True,
     )
 
 
+def _multivariate_section(mv_df: pd.DataFrame) -> None:
+    """Render the Isolation Forest anomaly section with radar charts."""
+    st.subheader("Multivariate Anomalies")
+    st.caption(
+        "Proxies flagged by Isolation Forest — unusual *combinations* of metrics "
+        "that univariate Z-scores miss"
+    )
+
+    if mv_df.empty:
+        st.info("No multivariate anomalies in the last 4 hours.")
+        return
+
+    st.caption(f"{len(mv_df)} proxies flagged · score closer to −1 = more anomalous")
+
+    # Summary table
+    display = mv_df[["proxy", "score", "traffic_z", "client_z", "server_z",
+                      "client_rate", "server_rate"]].copy()
+    display["score"]       = display["score"].apply(lambda x: f"{x:.4f}")
+    display["traffic_z"]   = display["traffic_z"].apply(lambda x: f"{x:+.2f}")
+    display["client_z"]    = display["client_z"].apply(lambda x: f"{x:+.2f}")
+    display["server_z"]    = display["server_z"].apply(lambda x: f"{x:+.2f}")
+    display["client_rate"] = display["client_rate"].apply(lambda x: f"{x:.1%}")
+    display["server_rate"] = display["server_rate"].apply(lambda x: f"{x:.1%}")
+    display.columns = [
+        "API Proxy", "IF Score", "Traffic Z", "Client Err Z",
+        "Server Err Z", "Client Rate", "Server Rate",
+    ]
+    st.dataframe(display, use_container_width=True, hide_index=True)
+
+    # Radar charts for top 6 most anomalous
+    top = mv_df.head(6)
+    if top.empty:
+        return
+
+    st.markdown("**Feature breakdown — top anomalies**")
+    cols = st.columns(min(3, len(top)))
+    features    = ["traffic_z", "client_z", "server_z", "client_rate", "server_rate"]
+    feat_labels = ["Traffic Z", "Client Z", "Server Z", "Client Rate%", "Server Rate%"]
+
+    for idx, (_, row) in enumerate(top.iterrows()):
+        col = cols[idx % 3]
+        with col:
+            # Scale rates to percentage for display alongside z-scores
+            values = [
+                row["traffic_z"],
+                row["client_z"],
+                row["server_z"],
+                row["client_rate"] * 100,
+                row["server_rate"] * 100,
+            ]
+            # Close the polygon
+            values_closed  = values + [values[0]]
+            labels_closed  = feat_labels + [feat_labels[0]]
+
+            fig = go.Figure(go.Scatterpolar(
+                r=values_closed,
+                theta=labels_closed,
+                fill="toself",
+                fillcolor="rgba(184, 84, 80, 0.15)",
+                line=dict(color="#B85450", width=2),
+                name=row["proxy"],
+            ))
+            fig.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[-10, 10]),
+                    angularaxis=dict(tickfont=dict(size=10)),
+                ),
+                showlegend=False,
+                margin=dict(l=10, r=10, t=30, b=10),
+                height=240,
+                title=dict(
+                    text=row["proxy"].split("_")[-1][:24],
+                    font=dict(size=10),
+                    x=0.5,
+                ),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+
 def render(settings: Settings) -> None:
     st.header("Incident Brief")
 
     with st.spinner("Loading..."):
-        brief         = queries.get_latest_incident_brief(settings)
-        anomalies_df  = queries.get_active_anomalies(settings)
-        predicted_df  = queries.get_predicted_anomalies(settings)
+        brief        = queries.get_latest_incident_brief(settings)
+        anomalies_df = queries.get_active_anomalies(settings)
+        predicted_df = queries.get_predicted_anomalies(settings)
+        mv_df        = queries.get_multivariate_anomalies(settings)
 
     # Predictive alert banner
     if not predicted_df.empty:
-        n       = len(predicted_df)
-        sample  = ", ".join(predicted_df["proxy"].head(3).tolist())
-        suffix  = f" +{n - 3} more" if n > 3 else ""
+        n      = len(predicted_df)
+        sample = ", ".join(predicted_df["proxy"].head(3).tolist())
+        suffix = f" +{n - 3} more" if n > 3 else ""
         st.warning(
             f"**Predictive Alert — {n} {'proxy' if n == 1 else 'proxies'} projected to breach "
             f"threshold within 2 hours:** {sample}{suffix}",
@@ -124,15 +210,22 @@ def render(settings: Settings) -> None:
     else:
         st.success("No incident briefs generated in the last 25 hours — system appears healthy.")
 
-    # Active anomalies
+    # Active anomalies (traffic + error rate)
     st.subheader("Active Anomalies")
-    if anomalies_df.empty:
+    univariate_df = anomalies_df[anomalies_df["type"] != "Multivariate"] if not anomalies_df.empty else anomalies_df
+    if univariate_df.empty:
         st.info("No active anomalies in the last 4 hours.")
     else:
-        n_sustained = int(anomalies_df["sustained"].sum())
+        n_sustained = int(univariate_df["sustained"].sum())
         c1, c2, c3 = st.columns(3)
-        c1.metric("Total Anomalies",   len(anomalies_df))
-        c2.metric("Sustained",         n_sustained, delta=f"{n_sustained} need attention" if n_sustained else None,
+        c1.metric("Total Anomalies",  len(univariate_df))
+        c2.metric("Sustained",        n_sustained,
+                  delta=f"{n_sustained} need attention" if n_sustained else None,
                   delta_color="inverse")
-        c3.metric("Unique Proxies",    anomalies_df["proxy"].nunique())
+        c3.metric("Unique Proxies",   univariate_df["proxy"].nunique())
         _anomaly_table(anomalies_df)
+
+    st.divider()
+
+    # Multivariate section
+    _multivariate_section(mv_df)
