@@ -113,7 +113,7 @@ _COLOURS = ["#2563EB", "#DC2626", "#16A34A", "#D97706", "#9333EA"]
 
 def _error_rate_chart(df: pd.DataFrame) -> None:
     """Time-series of combined error rates for top proxies + 2h linear projection."""
-    st.subheader("Predicted Error Rates — Top 5 Endpoints")
+    st.subheader("Predicted Error Rates — Top 10 Endpoints")
     st.caption("Solid lines: actual hourly error rate · Dotted: 2-hour linear projection")
 
     if df.empty:
@@ -320,7 +320,7 @@ def render(settings: Settings) -> None:
         anomalies_df   = queries.get_active_anomalies(settings)
         predicted_df   = queries.get_predicted_anomalies(settings)
         mv_df          = queries.get_multivariate_anomalies(settings)
-        error_trend_df = queries.get_error_rate_trend(settings, top_n=5)
+        error_trend_df = queries.get_error_rate_trend(settings, top_n=10)
 
     # Predictive alert banner
     if not predicted_df.empty:
