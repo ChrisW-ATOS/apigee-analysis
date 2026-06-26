@@ -477,6 +477,10 @@ def run_all(settings: Settings, at: datetime | None = None) -> None:
         log.info("wrote %d anomaly points to '%s' at %s",
                  len(points), settings.anomaly_bucket, at.strftime("%Y-%m-%dT%H:%M:%SZ"))
 
+    # Generate incident brief if anomalies were found
+    from .intelligence import run_intelligence
+    run_intelligence(settings, at)
+
 
 def backfill(settings: Settings, hours: int = 24) -> None:
     """Run detection for each of the last `hours` hours using a sliding window."""
