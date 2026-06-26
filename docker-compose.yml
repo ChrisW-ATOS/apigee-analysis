@@ -7,3 +7,17 @@ services:
     env_file:
       - .env
     network_mode: host  # reaches the influxdb container on localhost:8086
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: >
+      streamlit run /app/src/apigee_analysis/dashboard/app.py
+      --server.port 8501
+      --server.address 0.0.0.0
+      --server.headless true
+    restart: unless-stopped
+    env_file:
+      - .env
+    network_mode: host
