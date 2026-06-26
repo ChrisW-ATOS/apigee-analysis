@@ -21,7 +21,7 @@ def _brief_card(brief: dict) -> None:
     ts       = brief.get("timestamp")
     ts_str   = ts.strftime("%Y-%m-%d %H:%M UTC") if ts else "—"
 
-    st.markdown(f"""
+    st.html(f"""
 <div style="
     border-left: 6px solid {color};
     background: #FFFFFF;
@@ -73,7 +73,7 @@ def _brief_card(brief: dict) -> None:
         </span>
     </div>
 </div>
-""", unsafe_allow_html=True)
+""")
 
 
 def _anomaly_table(df: pd.DataFrame) -> None:

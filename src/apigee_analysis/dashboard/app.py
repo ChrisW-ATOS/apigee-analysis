@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # ── Sidebar branding ──────────────────────────────────────────────────────────
-st.markdown("""
+st.html("""
 <style>
     [data-testid="stSidebar"] {
         background-color: #1B2A4A;
@@ -37,20 +37,15 @@ st.markdown("""
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
         color: #94A3B8 !important;
     }
-    /* Tighten main content top padding */
     .block-container { padding-top: 1.5rem; }
 </style>
-""", unsafe_allow_html=True)
+""")
 
 settings = get_settings()
 
 with st.sidebar:
     st.markdown("# MTN API Intelligence")
-    st.markdown(
-        "<p style='font-size:12px;'>AI-powered API health monitoring<br>"
-        "across 15 Operating Companies</p>",
-        unsafe_allow_html=True,
-    )
+    st.caption("AI-powered API health monitoring across 15 Operating Companies")
     st.divider()
 
     page = st.radio(

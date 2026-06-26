@@ -113,6 +113,27 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
                     "sustained":         rec.values.get("sustained", "false") == "true",
                     "consecutive_hours": int(float(rec.values.get("consecutive_hours") or 1)),
                 })
+        # Multivariate anomalies
+        flux = f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -4h)
+          |> filter(fn: (r) => r._measurement == "multivariate_anomaly" and r.is_anomaly == "true")
+          |> filter(fn: (r) => r._field == "anomaly_score")
+          |> sort(columns:["_time"], desc: true)
+        '''
+        for table in _query_raw(settings, flux):
+            for rec in table.records:
+                rows.append({
+                    "time":              rec.get_time(),
+                    "proxy":             rec.values.get("apiproxy", ""),
+                    "type":              "Multivariate",
+                    "error_class":       "",
+                    "z_score":           float(rec.get_value() or 0),
+                    "error_rate":        None,
+                    "traffic":           None,
+                    "sustained":         False,
+                    "consecutive_hours": 1,
+                })
     except Exception:
         return pd.DataFrame()
 
