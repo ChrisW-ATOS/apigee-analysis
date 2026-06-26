@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="0" tooltips="1" connect="0" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="930" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- PAGE BACKGROUND -->
+    <mxCell id="bg" value="" style="fillColor=#F0F4F8;strokeColor=none;" vertex="1" parent="1">
+      <mxGeometry x="0" y="0" width="1654" height="930" as="geometry" />
+    </mxCell>
+
+    <!-- HEADER BAR -->
+    <mxCell id="hbar" value="" style="fillColor=#1B2A4A;strokeColor=none;" vertex="1" parent="1">
+      <mxGeometry x="0" y="0" width="1654" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="htitle" value="MTN API Intelligence Platform" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=26;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+      <mxGeometry x="0" y="8" width="1654" height="55" as="geometry" />
+    </mxCell>
+    <mxCell id="hsub" value="Automated, AI-powered API health monitoring — running every hour across 15 Operating Companies" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontColor=#FFCB05;" vertex="1" parent="1">
+      <mxGeometry x="0" y="63" width="1654" height="34" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- CARD 1: API Traffic Data               -->
+    <!-- ═══════════════════════════════════════ -->
+    <mxCell id="c1box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;strokeWidth=2;shadow=1;arcSize=3;" vertex="1" parent="1">
+      <mxGeometry x="60" y="130" width="340" height="550" as="geometry" />
+    </mxCell>
+    <mxCell id="c1hdr" value="" style="fillColor=#1B2A4A;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="60" y="130" width="340" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c1ht" value="1. API Traffic Data" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+      <mxGeometry x="60" y="130" width="340" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c1src" value="Source: Apigee API Gateway" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#94A3B8;fontStyle=2;" vertex="1" parent="1">
+      <mxGeometry x="60" y="198" width="340" height="24" as="geometry" />
+    </mxCell>
+    <mxCell id="c1div" value="" style="fillColor=#E2E8F0;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="80" y="226" width="300" height="2" as="geometry" />
+    </mxCell>
+    <mxCell id="c1pts" value="• Hundreds of API proxies across MTN&#xa;&#xa;• 15 Operating Companies (OpCos)&#xa;&#xa;• Millions of API calls per hour&#xa;&#xa;• HTTP status codes (2xx / 4xx / 5xx)&#xa;&#xa;• Developer app &amp; country dimensions" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontColor=#1E293B;spacingLeft=8;" vertex="1" parent="1">
+      <mxGeometry x="68" y="238" width="324" height="430" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- CARD 2: Automated Collection           -->
+    <!-- ═══════════════════════════════════════ -->
+    <mxCell id="c2box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;strokeWidth=2;shadow=1;arcSize=3;" vertex="1" parent="1">
+      <mxGeometry x="458" y="130" width="340" height="550" as="geometry" />
+    </mxCell>
+    <mxCell id="c2hdr" value="" style="fillColor=#1B2A4A;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="458" y="130" width="340" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c2ht" value="2. Automated Collection" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+      <mxGeometry x="458" y="130" width="340" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c2src" value="Tool: Python + Playwright browser automation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#94A3B8;fontStyle=2;" vertex="1" parent="1">
+      <mxGeometry x="458" y="198" width="340" height="24" as="geometry" />
+    </mxCell>
+    <mxCell id="c2div" value="" style="fillColor=#E2E8F0;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="478" y="226" width="300" height="2" as="geometry" />
+    </mxCell>
+    <mxCell id="c2pts" value="• Runs every hour, zero manual effort&#xa;&#xa;• Secure 2FA authenticated login&#xa;&#xa;• Background job submission &amp; monitoring&#xa;&#xa;• Data normalised to consistent format&#xa;&#xa;• OpCo product &amp; app mapping included" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontColor=#1E293B;spacingLeft=8;" vertex="1" parent="1">
+      <mxGeometry x="466" y="238" width="324" height="430" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- CARD 3: AI Analysis Engine             -->
+    <!-- ═══════════════════════════════════════ -->
+    <mxCell id="c3box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;strokeWidth=2;shadow=1;arcSize=3;" vertex="1" parent="1">
+      <mxGeometry x="856" y="130" width="340" height="550" as="geometry" />
+    </mxCell>
+    <mxCell id="c3hdr" value="" style="fillColor=#1B2A4A;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="856" y="130" width="340" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c3ht" value="3. AI Analysis Engine" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+      <mxGeometry x="856" y="130" width="340" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c3src" value="Tech: STL decomposition + statistical Z-score" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#94A3B8;fontStyle=2;" vertex="1" parent="1">
+      <mxGeometry x="856" y="198" width="340" height="24" as="geometry" />
+    </mxCell>
+    <mxCell id="c3div" value="" style="fillColor=#E2E8F0;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="876" y="226" width="300" height="2" as="geometry" />
+    </mxCell>
+    <mxCell id="c3pts" value="• Detects anomalies in traffic &amp; errors&#xa;&#xa;• Removes daily seasonal patterns for accuracy&#xa;&#xa;• Separates client from server failures&#xa;&#xa;• Predicts issues 2 hours in advance&#xa;&#xa;• Scores health per country across all OpCos" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontColor=#1E293B;spacingLeft=8;" vertex="1" parent="1">
+      <mxGeometry x="864" y="238" width="324" height="430" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- CARD 4: Incident Intelligence (AI)     -->
+    <!-- ═══════════════════════════════════════ -->
+    <mxCell id="c4box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;strokeWidth=2;shadow=1;arcSize=3;" vertex="1" parent="1">
+      <mxGeometry x="1254" y="130" width="340" height="550" as="geometry" />
+    </mxCell>
+    <mxCell id="c4hdr" value="" style="fillColor=#B85450;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="1254" y="130" width="340" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c4ht" value="4. Incident Intelligence" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+      <mxGeometry x="1254" y="130" width="340" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c4src" value="AI: Claude language model (Anthropic)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#94A3B8;fontStyle=2;" vertex="1" parent="1">
+      <mxGeometry x="1254" y="198" width="340" height="24" as="geometry" />
+    </mxCell>
+    <mxCell id="c4div" value="" style="fillColor=#E2E8F0;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="1274" y="226" width="300" height="2" as="geometry" />
+    </mxCell>
+    <mxCell id="c4pts" value="• Plain-English incident summary&#xa;&#xa;• Root cause hypothesis&#xa;&#xa;• Severity rating — low / medium / high&#xa;&#xa;• Blast radius — which apps &amp; countries&#xa;&#xa;• Single recommended immediate action" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontColor=#1E293B;spacingLeft=8;" vertex="1" parent="1">
+      <mxGeometry x="1262" y="238" width="324" height="430" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- ARROWS between cards                   -->
+    <!-- ═══════════════════════════════════════ -->
+    <mxCell id="a12" value="" style="endArrow=block;endFill=1;startArrow=none;strokeColor=#FFCB05;strokeWidth=8;fillColor=#FFCB05;html=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="400" y="405" as="sourcePoint" />
+        <mxPoint x="458" y="405" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="a23" value="" style="endArrow=block;endFill=1;startArrow=none;strokeColor=#FFCB05;strokeWidth=8;fillColor=#FFCB05;html=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="798" y="405" as="sourcePoint" />
+        <mxPoint x="856" y="405" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="a34" value="" style="endArrow=block;endFill=1;startArrow=none;strokeColor=#FFCB05;strokeWidth=8;fillColor=#FFCB05;html=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1196" y="405" as="sourcePoint" />
+        <mxPoint x="1254" y="405" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- OUTPUT CHIPS ROW                       -->
+    <!-- ═══════════════════════════════════════ -->
+    <mxCell id="outputs_label" value="OUTPUTS:" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#64748B;" vertex="1" parent="1">
+      <mxGeometry x="0" y="722" width="140" height="32" as="geometry" />
+    </mxCell>
+
+    <mxCell id="o1" value="Traffic Anomalies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A4A;strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="150" y="722" width="165" height="32" as="geometry" />
+    </mxCell>
+    <mxCell id="o2" value="Error Rate Alerts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A4A;strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="328" y="722" width="160" height="32" as="geometry" />
+    </mxCell>
+    <mxCell id="o3" value="Country Health Scores" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A4A;strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="502" y="722" width="190" height="32" as="geometry" />
+    </mxCell>
+    <mxCell id="o4" value="Predictive Alerts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A4A;strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="706" y="722" width="160" height="32" as="geometry" />
+    </mxCell>
+    <mxCell id="o5" value="AI Incident Briefs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="880" y="722" width="165" height="32" as="geometry" />
+    </mxCell>
+    <mxCell id="o6" value="Blast Radius Maps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A4A;strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1059" y="722" width="165" height="32" as="geometry" />
+    </mxCell>
+    <mxCell id="o7" value="Grafana Dashboards" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A4A;strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1238" y="722" width="180" height="32" as="geometry" />
+    </mxCell>
+
+    <!-- Divider line above chips -->
+    <mxCell id="chipline" value="" style="fillColor=#CBD5E1;strokeColor=none;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="60" y="712" width="1534" height="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- HOURLY BADGE                           -->
+    <!-- ═══════════════════════════════════════ -->
+    <mxCell id="hourly" value="Runs automatically every hour — no manual intervention required" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCB05;strokeColor=none;fontSize=13;fontStyle=1;fontColor=#1B2A4A;" vertex="1" parent="1">
+      <mxGeometry x="527" y="778" width="600" height="42" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- FOOTER                                 -->
+    <!-- ═══════════════════════════════════════ -->
+    <mxCell id="footer" value="github.com/ChrisW-ATOS/apigee-fetch  ·  github.com/ChrisW-ATOS/apigee-analysis" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#94A3B8;" vertex="1" parent="1">
+      <mxGeometry x="0" y="890" width="1654" height="30" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>

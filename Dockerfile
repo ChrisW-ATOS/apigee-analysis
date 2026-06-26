@@ -9,11 +9,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN pip install uv
 
 WORKDIR /app
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml uv.lock* README.md ./
 RUN uv sync --frozen --no-install-project --no-dev
 
 COPY src ./src
 COPY scripts ./scripts
+COPY .streamlit ./.streamlit
 RUN uv sync --frozen --no-dev
 
 ENTRYPOINT ["python3", "/app/scripts/run_analysis.py"]

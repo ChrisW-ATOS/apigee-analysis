@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TITLE -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <mxCell id="title" value="MTN API Intelligence Platform — Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#1a1a2e;" vertex="1" parent="1">
+      <mxGeometry x="327" y="20" width="1000" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- LANE 1: DATA SOURCES -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <mxCell id="lane1_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=30;" vertex="1" parent="1">
+      <mxGeometry x="40" y="80" width="1574" height="160" as="geometry" />
+    </mxCell>
+    <mxCell id="lane1_label" value="DATA SOURCES" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="50" y="88" width="150" height="20" as="geometry" />
+    </mxCell>
+
+    <!-- Apigee Portal -->
+    <mxCell id="apigee" value="Apigee Analytics Portal&#xa;&#xa;Custom Reports&#xa;API proxy dimensions&#xa;Status codes, traffic,&#xa;country, app, path" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="110" width="200" height="110" as="geometry" />
+    </mxCell>
+
+    <!-- MTN OpCo API -->
+    <mxCell id="opco_api" value="MTN OpCo Insights API&#xa;&#xa;dev.api.mtn.com&#xa;/opco/product/list&#xa;/opco/apps/list&#xa;15 Operating Companies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="340" y="110" width="200" height="110" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- LANE 2: DATA COLLECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <mxCell id="lane2_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;opacity=30;" vertex="1" parent="1">
+      <mxGeometry x="40" y="270" width="1574" height="180" as="geometry" />
+    </mxCell>
+    <mxCell id="lane2_label" value="DATA COLLECTION  (apigee-fetch repo)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#82b366;" vertex="1" parent="1">
+      <mxGeometry x="50" y="278" width="300" height="20" as="geometry" />
+    </mxCell>
+
+    <!-- Docker Cron -->
+    <mxCell id="cron" value="Docker Cron Service&#xa;&#xa;run_hourly.py&#xa;Fires every hour" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="300" width="160" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Playwright -->
+    <mxCell id="playwright" value="Playwright Automation&#xa;&#xa;• TOTP 2FA login&#xa;• Date range selection&#xa;• Submit Job (bg-job path)&#xa;• Poll Report Jobs until done&#xa;• Hover → reveal download icon&#xa;• Monitor .crdownload progress&#xa;• Extract CSV from ZIP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="300" y="290" width="250" height="150" as="geometry" />
+    </mxCell>
+
+    <!-- Normalisation -->
+    <mxCell id="normalise" value="Normalisation&#xa;&#xa;• Unified 10-col schema&#xa;• Timezone-aware RFC3339&#xa;• Drop invalid timestamps&#xa;• Merge inline + bg formats" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="610" y="300" width="210" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- OpCo Fetch -->
+    <mxCell id="opco_fetch" value="OpCo REST Fetch&#xa;&#xa;• fetch_opco_products()&#xa;• fetch_opco_apps()&#xa;• One row per product/app&#xa;  per OpCo per hour" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="880" y="300" width="210" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- LANE 3: STORAGE -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <mxCell id="lane3_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;opacity=30;" vertex="1" parent="1">
+      <mxGeometry x="40" y="480" width="1574" height="170" as="geometry" />
+    </mxCell>
+    <mxCell id="lane3_label" value="TIME-SERIES STORAGE  (InfluxDB v2)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#9673a6;" vertex="1" parent="1">
+      <mxGeometry x="50" y="488" width="300" height="20" as="geometry" />
+    </mxCell>
+
+    <!-- Apigee Reports bucket -->
+    <mxCell id="bucket_reports" value="Bucket: Apigee Reports&#xa;&#xa;Measurement: apigee_mso_reporting&#xa;Tags: apiproxy, developer_app,&#xa;  response_status_code,&#xa;  xcountrycode, request_path&#xa;Field: Sum of traffic&#xa;~400,000 pts / day" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="80" y="510" width="270" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- OpCo Products bucket -->
+    <mxCell id="bucket_products" value="Bucket: OpCo Products&#xa;&#xa;Measurement: opco_products&#xa;Tags: opco, product_name&#xa;Field: count&#xa;~360 pts / day" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="410" y="510" width="220" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- OpCo Apps bucket -->
+    <mxCell id="bucket_apps" value="Bucket: OpCo Apps&#xa;&#xa;Measurement: opco_apps&#xa;Tags: opco, product_name,&#xa;  app_name&#xa;Field: count&#xa;~47,000 pts / day" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="690" y="510" width="220" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Anomalies bucket -->
+    <mxCell id="bucket_anomalies" value="Bucket: Anomalies&#xa;&#xa;traffic_anomaly&#xa;error_rate_anomaly&#xa;country_health&#xa;blast_radius&#xa;predicted_anomaly&#xa;incident_summary&#xa;~25,000 pts / day" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="970" y="510" width="200" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- LANE 4: AI ANALYSIS ENGINE -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <mxCell id="lane4_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;opacity=30;" vertex="1" parent="1">
+      <mxGeometry x="40" y="680" width="1574" height="340" as="geometry" />
+    </mxCell>
+    <mxCell id="lane4_label" value="AI ANALYSIS ENGINE  (apigee-analysis repo)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#d79b00;" vertex="1" parent="1">
+      <mxGeometry x="50" y="688" width="350" height="20" as="geometry" />
+    </mxCell>
+
+    <!-- STL Decomposition -->
+    <mxCell id="stl" value="STL Decomposition&#xa;baseline.py&#xa;&#xa;observed =&#xa;  trend&#xa;+ seasonal (24h period)&#xa;+ residual&#xa;&#xa;Z-score on residual only&#xa;Fallback: flat Z-score&#xa;(&lt;72 data points)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="80" y="710" width="200" height="180" as="geometry" />
+    </mxCell>
+
+    <!-- Traffic Anomaly -->
+    <mxCell id="traffic_detect" value="Traffic Anomaly&#xa;detect.py&#xa;&#xa;Per-proxy hourly volume&#xa;Z-score vs 7-day window&#xa;Threshold: |Z| &gt; 3.0&#xa;Writes: traffic_anomaly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="340" y="710" width="200" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Error Rate Anomaly -->
+    <mxCell id="error_detect" value="Error Rate Anomaly&#xa;detect.py&#xa;&#xa;4xx (client errors) split&#xa;5xx (server errors) split&#xa;rate = errors / total&#xa;Z-score per class&#xa;Writes: error_rate_anomaly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="340" y="850" width="200" height="130" as="geometry" />
+    </mxCell>
+
+    <!-- Sustained Detection -->
+    <mxCell id="sustained" value="Sustained Detection&#xa;detect.py&#xa;&#xa;Queries previous hour&#xa;from Anomalies bucket&#xa;sustained=true if&#xa;both hours anomalous&#xa;consecutive_hours ++" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="600" y="710" width="200" height="130" as="geometry" />
+    </mxCell>
+
+    <!-- Blast Radius -->
+    <mxCell id="blast" value="Blast Radius&#xa;detect.py&#xa;&#xa;Per anomalous proxy:&#xa;group by developer_app&#xa;+ xcountrycode&#xa;Sort by call volume&#xa;Writes: blast_radius" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="600" y="860" width="200" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Country Health -->
+    <mxCell id="country_health" value="Country Health&#xa;detect.py&#xa;&#xa;Aggregate all errors&#xa;per OpCo per hour&#xa;Z-score vs 7-day baseline&#xa;Writes: country_health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="860" y="710" width="200" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Predictive -->
+    <mxCell id="predictive" value="Predictive Alerting&#xa;baseline.py&#xa;&#xa;Linear trend extrapolation&#xa;+ periodic seasonal reuse&#xa;Forecast 2h ahead&#xa;Flag if forecast |Z| &gt; 3&#xa;Writes: predicted_anomaly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="860" y="850" width="200" height="130" as="geometry" />
+    </mxCell>
+
+    <!-- Claude API -->
+    <mxCell id="claude" value="Claude API&#xa;intelligence.py&#xa;claude-opus-4-8&#xa;&#xa;Assembles structured context:&#xa;• Active anomalies + Z-scores&#xa;• Blast radius top entries&#xa;• Country health anomalies&#xa;&#xa;Returns JSON:&#xa;• summary (2-3 sentences)&#xa;• root_cause hypothesis&#xa;• severity (low/med/high)&#xa;• recommended_action&#xa;&#xa;Fires only when anomalies exist&#xa;Writes: incident_summary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="1120" y="710" width="230" height="280" as="geometry" />
+    </mxCell>
+
+    <!-- Anthropic Cloud -->
+    <mxCell id="anthropic" value="Anthropic API&#xa;(cloud)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1410" y="790" width="160" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- LANE 5: VISUALISATION -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <mxCell id="lane5_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=30;" vertex="1" parent="1">
+      <mxGeometry x="40" y="1050" width="1574" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="lane5_label" value="VISUALISATION" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="50" y="1058" width="150" height="20" as="geometry" />
+    </mxCell>
+
+    <mxCell id="grafana" value="Grafana Dashboards&#xa;&#xa;Anomaly timeline · Sustained incidents · Country health · Blast radius · Predictive alerts · Incident brief" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="400" y="1070" width="860" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- ARROWS: DATA SOURCES → COLLECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <mxCell id="e1" value="report request" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;fontSize=9;" edge="1" source="apigee" target="playwright" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e2" value="REST calls" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;fontSize=9;" edge="1" source="opco_api" target="opco_fetch" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;fontSize=9;" edge="1" source="cron" target="playwright" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;fontSize=9;" edge="1" source="cron" target="opco_fetch" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e5" value="CSV rows" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;fontSize=9;" edge="1" source="playwright" target="normalise" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- COLLECTION → STORAGE -->
+    <mxCell id="e6" value="influx write" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;" edge="1" source="normalise" target="bucket_reports" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e7" value="influx write" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;" edge="1" source="opco_fetch" target="bucket_products" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e8" value="influx write" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;" edge="1" source="opco_fetch" target="bucket_apps" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- STORAGE → ANALYSIS -->
+    <mxCell id="e9" value="Flux query&#xa;7-day window" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="bucket_reports" target="stl" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="bucket_reports" target="traffic_detect" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.6;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="bucket_reports" target="error_detect" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="bucket_reports" target="country_health" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- STL → detectors -->
+    <mxCell id="e13" value="zscore_and_forecast()" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="stl" target="traffic_detect" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e14" value="zscore_and_forecast()" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="stl" target="error_detect" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e15" value="forecast_z" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="stl" target="predictive" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- detectors → sustained -->
+    <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="traffic_detect" target="sustained" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#d79b00;fontSize=9;" edge="1" source="error_detect" target="blast" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- all → Anomalies bucket -->
+    <mxCell id="e18" value="write" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;" edge="1" source="sustained" target="bucket_anomalies" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e19" value="write" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;" edge="1" source="blast" target="bucket_anomalies" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e20" value="write" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;" edge="1" source="country_health" target="bucket_anomalies" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e21" value="write" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;" edge="1" source="predictive" target="bucket_anomalies" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Anomalies bucket → Claude -->
+    <mxCell id="e22" value="gather_incident_context()" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#b85450;fontSize=9;" edge="1" source="bucket_anomalies" target="claude" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Claude → Anthropic API -->
+    <mxCell id="e23" value="API call" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;fontSize=9;dashed=1;" edge="1" source="claude" target="anthropic" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Claude → Anomalies bucket (incident_summary write) -->
+    <mxCell id="e24" value="write incident_summary" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.9;entryY=1;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;curved=1;" edge="1" source="claude" target="bucket_anomalies" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- STORAGE → GRAFANA -->
+    <mxCell id="e25" value="Flux queries" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;fontSize=9;" edge="1" source="bucket_anomalies" target="grafana" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e26" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;fontSize=9;" edge="1" source="bucket_reports" target="grafana" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Previous hour lookup: Anomalies → Sustained -->
+    <mxCell id="e27" value="prev hour lookup" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#9673a6;fontSize=9;dashed=1;curved=1;" edge="1" source="bucket_anomalies" target="sustained" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>
