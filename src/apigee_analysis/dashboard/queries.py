@@ -73,7 +73,7 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
         # Traffic anomalies
         flux = f'''
         from(bucket: "{settings.anomaly_bucket}")
-          |> range(start: -4h)
+          |> range(start: -25h)
           |> filter(fn: (r) => r._measurement == "traffic_anomaly" and r.is_anomaly == "true")
           |> pivot(rowKey:["_time","apiproxy"], columnKey:["_field"], valueColumn:"_value")
           |> sort(columns:["_time"], desc: true)
@@ -95,7 +95,7 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
         # Error rate anomalies
         flux = f'''
         from(bucket: "{settings.anomaly_bucket}")
-          |> range(start: -4h)
+          |> range(start: -25h)
           |> filter(fn: (r) => r._measurement == "error_rate_anomaly" and r.is_anomaly == "true")
           |> pivot(rowKey:["_time","apiproxy","error_class"], columnKey:["_field"], valueColumn:"_value")
           |> sort(columns:["_time"], desc: true)
@@ -116,7 +116,7 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
         # Multivariate anomalies
         flux = f'''
         from(bucket: "{settings.anomaly_bucket}")
-          |> range(start: -4h)
+          |> range(start: -25h)
           |> filter(fn: (r) => r._measurement == "multivariate_anomaly" and r.is_anomaly == "true")
           |> filter(fn: (r) => r._field == "anomaly_score")
           |> sort(columns:["_time"], desc: true)
@@ -156,10 +156,10 @@ def get_error_rate_trend(settings: Settings, top_n: int = 5) -> pd.DataFrame:
     Returns columns: time, proxy, error_class, error_rate, z_score, is_anomaly.
     """
     try:
-        # Top proxies by worst z_score this window
+        # Top proxies by worst z_score in the same 25h window used for history
         top_tables = _query_raw(settings, f'''
         from(bucket: "{settings.anomaly_bucket}")
-          |> range(start: -4h)
+          |> range(start: -25h)
           |> filter(fn: (r) => r._measurement == "error_rate_anomaly" and r.is_anomaly == "true")
           |> filter(fn: (r) => r._field == "z_score")
           |> group(columns: ["apiproxy"])
@@ -214,7 +214,7 @@ def get_multivariate_anomalies(settings: Settings) -> pd.DataFrame:
     """Return anomalous proxies with full feature breakdown from Isolation Forest."""
     flux = f'''
     from(bucket: "{settings.anomaly_bucket}")
-      |> range(start: -4h)
+      |> range(start: -25h)
       |> filter(fn: (r) => r._measurement == "multivariate_anomaly" and r.is_anomaly == "true")
       |> pivot(rowKey:["_time","apiproxy"], columnKey:["_field"], valueColumn:"_value")
       |> sort(columns:["anomaly_score"])
@@ -251,7 +251,7 @@ def get_multivariate_anomalies(settings: Settings) -> pd.DataFrame:
 def get_predicted_anomalies(settings: Settings) -> pd.DataFrame:
     flux = f'''
     from(bucket: "{settings.anomaly_bucket}")
-      |> range(start: -4h)
+      |> range(start: -25h)
       |> filter(fn: (r) => r._measurement == "predicted_anomaly")
       |> filter(fn: (r) => r._field == "forecast_z_score")
       |> group(columns: ["apiproxy"])
@@ -281,7 +281,7 @@ def get_predicted_anomalies(settings: Settings) -> pd.DataFrame:
 def get_country_health(settings: Settings) -> pd.DataFrame:
     flux = f'''
     from(bucket: "{settings.anomaly_bucket}")
-      |> range(start: -4h)
+      |> range(start: -25h)
       |> filter(fn: (r) => r._measurement == "country_health")
       |> pivot(rowKey:["_time","xcountrycode","is_anomaly"], columnKey:["_field"], valueColumn:"_value")
     '''
