@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
@@ -482,9 +483,12 @@ def run_all(settings: Settings, at: datetime | None = None) -> None:
     from .multivariate import run_multivariate
     run_multivariate(settings, at)
 
-    # Generate incident brief if anomalies were found
-    from .intelligence import run_intelligence
-    run_intelligence(settings, at)
+    # Generate incident brief — controlled by INTELLIGENCE_ENABLED in .env
+    if os.getenv("INTELLIGENCE_ENABLED", "false").lower() == "true":
+        from .intelligence import run_intelligence
+        run_intelligence(settings, at)
+    else:
+        log.info("incident intelligence disabled (INTELLIGENCE_ENABLED=false)")
 
 
 def backfill(settings: Settings, hours: int = 24) -> None:
