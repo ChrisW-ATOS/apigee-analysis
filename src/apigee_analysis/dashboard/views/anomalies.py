@@ -6,11 +6,12 @@ import streamlit as st
 
 from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
+from apigee_analysis.dashboard.labels import friendly_measure, friendly_proxy
 
 
 def render(settings: Settings) -> None:
-    st.header("Anomaly Explorer")
-    st.caption("Z-score over time per proxy — red markers indicate anomaly threshold breaches")
+    st.header("Signal Explorer")
+    st.caption("API alert signal over time — red markers indicate threshold breaches")
 
     # ── Filters ──────────────────────────────────────────────────────────────
     c1, c2, c3 = st.columns([1, 1, 2])
@@ -25,7 +26,7 @@ def render(settings: Settings) -> None:
         measure = st.selectbox(
             "Measurement",
             ["traffic_anomaly", "error_rate_anomaly"],
-            format_func=lambda x: x.replace("_", " ").title(),
+            format_func=friendly_measure,
         )
     with c3:
         with st.spinner("Loading proxies..."):
@@ -64,17 +65,19 @@ def render(settings: Settings) -> None:
         grp   = grp.sort_values("time")
         color = colour_cycle[i % len(colour_cycle)]
 
+        label = friendly_proxy(proxy_name)
+
         # Main line
         fig.add_trace(go.Scatter(
             x=grp["time"],
             y=grp["z_score"],
             mode="lines",
-            name=proxy_name,
+            name=label,
             line=dict(width=1.5, color=color),
             hovertemplate=(
-                f"<b>{proxy_name}</b><br>"
+                f"<b>{label}</b><br>"
                 "Time: %{x}<br>"
-                "Z-Score: %{y:.2f}<extra></extra>"
+                "Alert level: %{y:.1f}×<extra></extra>"
             ),
         ))
 
@@ -87,26 +90,25 @@ def render(settings: Settings) -> None:
                 mode="markers",
                 marker=dict(color="red", size=9, symbol="circle",
                             line=dict(color="white", width=1.5)),
-                name=f"{proxy_name} ⚠",
+                name=f"{label} ⚠",
                 showlegend=False,
                 hovertemplate=(
-                    f"<b>ANOMALY — {proxy_name}</b><br>"
+                    f"<b>ALERT — {label}</b><br>"
                     "Time: %{x}<br>"
-                    "Z-Score: %{y:.2f}<extra></extra>"
+                    "Alert level: %{y:.1f}×<extra></extra>"
                 ),
             ))
 
     # Threshold bands
     fig.add_hline(y=3.0,  line_dash="dash", line_color="red",  line_width=1,
-                  annotation_text="±3σ anomaly threshold", annotation_position="top right")
+                  annotation_text="Alert threshold", annotation_position="top right")
     fig.add_hline(y=-3.0, line_dash="dash", line_color="red",  line_width=1)
     fig.add_hrect(y0=-3.0, y1=3.0, fillcolor="#16A34A", opacity=0.04, line_width=0)
 
-    measure_label = measure.replace("_", " ").title()
     fig.update_layout(
-        title=dict(text=f"{measure_label} · Last {hours}h", font=dict(size=14)),
+        title=dict(text=f"{friendly_measure(measure)} · Last {hours}h", font=dict(size=14)),
         xaxis_title="Time",
-        yaxis_title="Z-Score (σ)",
+        yaxis_title="Alert Level",
         hovermode="x unified",
         legend=dict(
             orientation="h",
@@ -126,17 +128,23 @@ def render(settings: Settings) -> None:
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── Anomalous points table ────────────────────────────────────────────────
-    st.subheader("Anomalous Points in Window")
+    # ── Alerts table ─────────────────────────────────────────────────────────
+    st.subheader("Alerts in Window")
     bad_df = df[df["is_anomaly"]].sort_values("z_score", key=lambda s: s.abs(), ascending=False)
 
     if bad_df.empty:
-        st.success("No anomalies detected in this time range.")
+        st.success("No alerts detected in this time range.")
     else:
-        st.caption(f"{len(bad_df)} anomalous data points across {bad_df['proxy'].nunique()} proxies")
+        st.caption(f"{len(bad_df)} alerts across {bad_df['proxy'].nunique()} APIs")
         display = bad_df[["time", "proxy", "z_score", "sustained"]].copy()
         display["time"]      = display["time"].dt.strftime("%Y-%m-%d %H:%M UTC")
-        display["z_score"]   = display["z_score"].apply(lambda x: f"{x:+.2f}")
-        display["sustained"] = display["sustained"].apply(lambda x: "Yes" if x else "No")
-        display.columns      = ["Time", "Proxy", "Z-Score", "Sustained"]
-        st.dataframe(display, use_container_width=True, hide_index=True)
+        display["API Service"] = display["proxy"].apply(friendly_proxy)
+        display["Signal Strength"] = display["z_score"].apply(lambda x: f"{abs(x):.1f}×")
+        display["Ongoing"]   = display["sustained"].apply(lambda x: "●" if x else "")
+        st.dataframe(
+            display[["time", "API Service", "Signal Strength", "Ongoing"]].rename(
+                columns={"time": "Time"}
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )

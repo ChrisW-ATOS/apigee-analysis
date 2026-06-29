@@ -37,7 +37,7 @@ st.html("""
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
         color: #94A3B8 !important;
     }
-    .block-container { padding-top: 1.5rem; }
+    .block-container { padding-top: 3rem; }
 </style>
 """)
 
@@ -50,7 +50,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigate",
-        options=["Incident Brief", "Country Health", "Anomaly Explorer", "Blast Radius"],
+        options=["Incident Brief", "Country Health", "Signal Explorer", "Incident Impact"],
         label_visibility="collapsed",
     )
 
@@ -68,7 +68,7 @@ if page == "Incident Brief":
     incident.render(settings)
 elif page == "Country Health":
     health.render(settings)
-elif page == "Anomaly Explorer":
+elif page == "Signal Explorer":
     anomalies.render(settings)
-elif page == "Blast Radius":
+elif page == "Incident Impact":
     blast.render(settings)

@@ -19,7 +19,7 @@ _COUNTRY_NAMES: dict[str, str] = {
 
 def render(settings: Settings) -> None:
     st.header("Country Health")
-    st.caption("Rolled-up API error rate per Operating Company — Z-score vs 7-day baseline")
+    st.caption("API error rate per Operating Company compared against the 7-day historical baseline")
 
     with st.spinner("Loading..."):
         df = queries.get_country_health(settings)
@@ -56,9 +56,9 @@ def render(settings: Settings) -> None:
                 "total_calls":    ":,",
             },
             labels={
-                "z_score":        "Health Z-Score",
+                "z_score":        "Alert Level",
                 "error_rate_pct": "Error Rate %",
-                "total_calls":    "Total Calls",
+                "total_calls":    "Total Requests",
             },
         )
         fig.update_layout(
@@ -77,9 +77,9 @@ def render(settings: Settings) -> None:
                 countrycolor="#E2E8F0",
             ),
             coloraxis_colorbar=dict(
-                title="Z-Score",
+                title="Alert Level",
                 tickvals=[-3, -1.5, 0, 1.5, 3],
-                ticktext=["−3 Degraded", "−1.5", "Normal", "+1.5", "+3 Elevated"],
+                ticktext=["Degraded", "Below avg", "Healthy", "Elevated", "Critical"],
                 len=0.7,
             ),
         )
@@ -102,19 +102,19 @@ def render(settings: Settings) -> None:
                 icon = "🟢"
 
             st.markdown(f"{icon} **{name}**")
-            st.caption(f"Z `{z:+.2f}` · error `{er:.1f}%`")
+            st.caption(f"Alert level: `{abs(z):.1f}×` · Error rate: `{er:.1f}%`")
             st.write("")   # spacing
 
     # Summary metrics
     st.divider()
     anomalous = df[df["is_anomaly"]]
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("OpCos Monitored",  len(df))
-    c2.metric("Anomalous OpCos",  len(anomalous),
-              delta=f"{len(anomalous)} degraded" if len(anomalous) else None,
+    c1.metric("Countries Monitored", len(df))
+    c2.metric("Degraded Countries",  len(anomalous),
+              delta=f"{len(anomalous)} need attention" if len(anomalous) else None,
               delta_color="inverse")
-    c3.metric("Worst Z-Score",
-              f"{df['z_score'].abs().max():.2f}",
+    c3.metric("Highest Alert Level",
+              f"{df['z_score'].abs().max():.1f}×",
               delta=df.loc[df['z_score'].abs().idxmax(), 'name'])
-    c4.metric("Avg Error Rate",
+    c4.metric("Platform Error Rate",
               f"{df['error_rate_pct'].mean():.1f}%")

@@ -6,11 +6,12 @@ import streamlit as st
 
 from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
+from apigee_analysis.dashboard.labels import friendly_proxy
 
 
 def render(settings: Settings) -> None:
-    st.header("Blast Radius")
-    st.caption("Which developer apps and countries are affected by active incidents")
+    st.header("Incident Impact")
+    st.caption("Which partner applications and countries are affected by active incidents")
 
     # ── Filters ───────────────────────────────────────────────────────────────
     c1, c2 = st.columns([1, 2])
@@ -30,23 +31,29 @@ def render(settings: Settings) -> None:
         return
 
     proxy_options = sorted(df["proxy"].unique())
+    proxy_labels  = {p: friendly_proxy(p) for p in proxy_options}
     with c2:
-        selected_proxy = st.selectbox("Filter by proxy", ["(all anomalous proxies)"] + proxy_options)
+        selected_label = st.selectbox(
+            "Filter by API",
+            ["(all affected APIs)"] + [proxy_labels[p] for p in proxy_options],
+        )
 
-    if selected_proxy != "(all anomalous proxies)":
-        df = df[df["proxy"] == selected_proxy]
+    if selected_label != "(all affected APIs)":
+        selected_proxy = next((p for p, l in proxy_labels.items() if l == selected_label), None)
+        if selected_proxy:
+            df = df[df["proxy"] == selected_proxy]
 
     # ── Headline metrics ──────────────────────────────────────────────────────
-    total_calls    = int(df["call_count"].sum())
-    unique_apps    = df["app"].nunique()
-    unique_proxies = df["proxy"].nunique()
+    total_calls      = int(df["call_count"].sum())
+    unique_apps      = df["app"].nunique()
+    unique_proxies   = df["proxy"].nunique()
     unique_countries = df["country"].nunique()
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Anomalous Proxies",   unique_proxies)
-    c2.metric("Affected Apps",       unique_apps)
-    c3.metric("Affected Countries",  unique_countries)
-    c4.metric("Total Calls at Risk", f"{total_calls:,}")
+    c1.metric("APIs Affected",      unique_proxies)
+    c2.metric("Partners Affected",  unique_apps)
+    c3.metric("Countries Affected", unique_countries)
+    c4.metric("Requests Impacted",  f"{total_calls:,}")
 
     st.divider()
 
@@ -127,6 +134,7 @@ def render(settings: Settings) -> None:
         .sort_values(ascending=False)
         .reset_index()
     )
-    detail.columns = ["Proxy", "Application", "Country", "Calls"]
+    detail.columns = ["API Service", "Application", "Country", "Calls"]
+    detail["API Service"] = detail["API Service"].apply(friendly_proxy)
     detail["Calls"] = detail["Calls"].apply(lambda x: f"{int(x):,}")
     st.dataframe(detail, use_container_width=True, hide_index=True)
