@@ -387,6 +387,83 @@ def get_anomaly_trend(
     })
 
 
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_availability_scorecard(settings: Settings, days: int = 30) -> pd.DataFrame:
+    """Per-OpCo API availability over the last `days` days.
+
+    Queries the source bucket directly (Apigee Reports) so data goes back as far
+    as the fetch pipeline has collected, regardless of the Anomalies backfill.
+
+    Returns columns: country, name, availability_pct, error_rate_pct,
+                     total_calls, error_calls, sla_met, prev_availability_pct.
+    prev_availability_pct is NaN when there is insufficient history for comparison.
+    """
+    _COUNTRY_NAMES = {
+        "GHA": "Ghana",        "NGA": "Nigeria",       "ZAF": "South Africa",
+        "UGA": "Uganda",       "CMR": "Cameroon",       "ZMB": "Zambia",
+        "CIV": "Côte d'Ivoire","BEN": "Benin",          "LBR": "Liberia",
+        "RWA": "Rwanda",       "SWZ": "Eswatini",       "GIN": "Guinea",
+        "SDN": "Sudan",        "MOZ": "Mozambique",     "COD": "DR Congo",
+    }
+
+    def _compute(flux_range_start: str) -> pd.DataFrame:
+        flux = f'''
+        from(bucket: "{settings.source_bucket}")
+          |> range(start: {flux_range_start})
+          |> filter(fn: (r) => r._field == "Sum of traffic")
+          |> filter(fn: (r) => r.xcountrycode != "" and r.xcountrycode != "(not set)")
+          |> group(columns: ["xcountrycode", "response_status_code"])
+          |> sum()
+        '''
+        rows = []
+        try:
+            with _client(settings) as client:
+                result = client.query_api().query_data_frame(flux)
+            if result is None:
+                return pd.DataFrame()
+            if isinstance(result, list):
+                if not result:
+                    return pd.DataFrame()
+                result = pd.concat(result, ignore_index=True)
+            if result.empty:
+                return pd.DataFrame()
+            result["is_error"] = result["response_status_code"].astype(str).str.startswith(("4", "5"))
+            for country, grp in result.groupby("xcountrycode"):
+                total  = float(grp["_value"].sum())
+                errors = float(grp.loc[grp["is_error"], "_value"].sum())
+                if total == 0:
+                    continue
+                rows.append({
+                    "country":      country,
+                    "total_calls":  int(total),
+                    "error_calls":  int(errors),
+                    "error_rate":   errors / total,
+                    "availability": (1 - errors / total) * 100,
+                })
+        except Exception:
+            pass
+        return pd.DataFrame(rows) if rows else pd.DataFrame()
+
+    current  = _compute(f"-{days}d")
+    previous = _compute(f"-{days * 2}d")
+
+    if current.empty:
+        return pd.DataFrame()
+
+    if not previous.empty:
+        prev_map = previous.set_index("country")["availability"].to_dict()
+        current["prev_availability"] = current["country"].map(prev_map)
+        current["trend_pp"] = current["availability"] - current["prev_availability"]
+    else:
+        current["prev_availability"] = float("nan")
+        current["trend_pp"]          = float("nan")
+
+    current["name"]          = current["country"].map(_COUNTRY_NAMES).fillna(current["country"])
+    current["error_rate_pct"] = current["error_rate"] * 100
+    current["sla_met"]        = current["availability"] >= 99.5
+    return current.sort_values("availability").reset_index(drop=True)
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def get_proxy_list(settings: Settings) -> list[str]:
     flux = f'''
