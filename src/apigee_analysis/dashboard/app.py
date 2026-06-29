@@ -4,7 +4,7 @@ from __future__ import annotations
 import streamlit as st
 
 from apigee_analysis.config import get_settings
-from apigee_analysis.dashboard.views import anomalies, blast, health, incident
+from apigee_analysis.dashboard.views import anomalies, blast, executive, health, incident
 
 st.set_page_config(
     page_title="MTN API Intelligence",
@@ -50,7 +50,8 @@ with st.sidebar:
 
     page = st.radio(
         "Navigate",
-        options=["Incident Brief", "Country Health", "Signal Explorer", "Incident Impact"],
+        options=["Platform Overview", "Incident Brief", "Country Health",
+                 "Signal Explorer", "Incident Impact"],
         label_visibility="collapsed",
     )
 
@@ -64,7 +65,9 @@ with st.sidebar:
     st.caption(f"Bucket: `{settings.anomaly_bucket}`")
 
 # ── Page routing ──────────────────────────────────────────────────────────────
-if page == "Incident Brief":
+if page == "Platform Overview":
+    executive.render(settings)
+elif page == "Incident Brief":
     incident.render(settings)
 elif page == "Country Health":
     health.render(settings)
