@@ -156,14 +156,15 @@ def get_error_rate_trend(settings: Settings, top_n: int = 5) -> pd.DataFrame:
     Returns columns: time, proxy, error_class, error_rate, z_score, is_anomaly.
     """
     try:
-        # Top proxies by worst z_score in the same 25h window used for history.
-        # group() after max() collapses all per-proxy groups into one table so
-        # sort() and limit() operate globally, not per-group.
+        # Top proxies by highest actual error_rate in the last 4h.
+        # Using error_rate (not z_score) and a short window means we select
+        # APIs that are currently elevated — not ones that spiked hours ago
+        # and have since resolved back to 0%.
         top_tables = _query_raw(settings, f'''
         from(bucket: "{settings.anomaly_bucket}")
-          |> range(start: -25h)
-          |> filter(fn: (r) => r._measurement == "error_rate_anomaly" and r.is_anomaly == "true")
-          |> filter(fn: (r) => r._field == "z_score")
+          |> range(start: -4h)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+          |> filter(fn: (r) => r._field == "error_rate")
           |> group(columns: ["apiproxy"])
           |> max()
           |> group()
