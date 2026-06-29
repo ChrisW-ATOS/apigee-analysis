@@ -113,9 +113,9 @@ _COLOURS = ["#2563EB", "#DC2626", "#16A34A", "#D97706", "#9333EA"]
 
 
 def _error_rate_chart(df: pd.DataFrame) -> None:
-    """Time-series of combined error rates for top proxies + 2h linear projection."""
+    """Time-series of combined error rates for top proxies + 2h ETS forecast with CI."""
     st.subheader("Predicted Error Rates — Top 10 Endpoints")
-    st.caption("Solid lines: actual hourly error rate · Dotted: 2-hour linear projection")
+    st.caption("Solid lines: actual hourly error rate · Dotted: 2-hour forecast · Shaded: 95% confidence")
 
     if df.empty:
         st.info("No error rate history available.")
@@ -157,34 +157,70 @@ def _error_rate_chart(df: pd.DataFrame) -> None:
             ),
         ))
 
-        # 2-hour linear projection from the last 3 data points
-        if len(grp) >= 2:
-            tail   = grp.tail(3)
-            x_num  = np.arange(len(tail))
-            y_vals = tail["error_rate"].values
-            slope, intercept = np.polyfit(x_num, y_vals, 1)
+        # 2-hour forecast using Exponential Smoothing (Holt's double smoothing)
+        # with a 95% confidence interval shown as a shaded band.
+        if len(grp) >= 4:
+            try:
+                from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-            t_last   = grp["time"].iloc[-1]
-            proj_t   = [t_last + timedelta(hours=h) for h in [1, 2]]
-            proj_r   = [
-                float(np.clip(slope * (len(tail) - 1 + h) + intercept, 0, 1))
-                for h in [1, 2]
-            ]
+                y_vals = grp["error_rate"].values.astype(float)
+                model  = ExponentialSmoothing(
+                    y_vals,
+                    trend="add",
+                    damped_trend=True,   # damps long-run trend — avoids runaway extrapolation
+                    initialization_method="estimated",
+                )
+                fit       = model.fit(optimized=True, disp=False)
+                fcast     = fit.forecast(2)
+                sim       = fit.simulate(2, repetitions=200, error="add")
+                ci_lo     = np.clip(np.percentile(sim, 2.5,  axis=1), 0, 1)
+                ci_hi     = np.clip(np.percentile(sim, 97.5, axis=1), 0, 1)
 
-            fig.add_trace(go.Scatter(
-                x=[t_last] + proj_t,
-                y=[(grp["error_rate"].iloc[-1]) * 100] + [r * 100 for r in proj_r],
-                mode="lines+markers",
-                name=f"{label} (projected)",
-                line=dict(color=colour, width=2, dash="dot"),
-                marker=dict(color=colour, size=7, symbol="diamond"),
-                showlegend=False,
-                hovertemplate=(
-                    f"<b>{label} (projected)</b><br>"
-                    "Time: %{x}<br>"
-                    "Projected: %{y:.1f}%<extra></extra>"
-                ),
-            ))
+                t_last  = grp["time"].iloc[-1]
+                proj_t  = [t_last + timedelta(hours=h) for h in [1, 2]]
+                proj_r  = [float(np.clip(v, 0, 1)) for v in fcast]
+                anchor_r = float(grp["error_rate"].iloc[-1])
+
+                # Confidence band (filled area)
+                band_x = [t_last] + proj_t + proj_t[::-1] + [t_last]
+                band_y = (
+                    [anchor_r * 100]
+                    + [v * 100 for v in ci_hi]
+                    + [v * 100 for v in ci_lo[::-1]]
+                    + [anchor_r * 100]
+                )
+                hex_r = int(colour[1:3], 16)
+                hex_g = int(colour[3:5], 16)
+                hex_b = int(colour[5:7], 16)
+                fill_color = f"rgba({hex_r},{hex_g},{hex_b},0.12)"
+
+                fig.add_trace(go.Scatter(
+                    x=band_x, y=band_y,
+                    fill="toself",
+                    fillcolor=fill_color,
+                    line=dict(width=0),
+                    showlegend=False,
+                    hoverinfo="skip",
+                ))
+
+                # Forecast line
+                fig.add_trace(go.Scatter(
+                    x=[t_last] + proj_t,
+                    y=[anchor_r * 100] + [r * 100 for r in proj_r],
+                    mode="lines+markers",
+                    name=f"{label} (forecast)",
+                    line=dict(color=colour, width=2, dash="dot"),
+                    marker=dict(color=colour, size=7, symbol="diamond"),
+                    showlegend=False,
+                    hovertemplate=(
+                        f"<b>{label} (forecast)</b><br>"
+                        "Time: %{x}<br>"
+                        "Forecast: %{y:.1f}%<extra></extra>"
+                    ),
+                ))
+
+            except Exception:
+                pass   # silent fallback — chart still shows historical data
 
     # Soft reference line at 10%
     fig.add_hline(
