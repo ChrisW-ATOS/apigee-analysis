@@ -649,6 +649,105 @@ def get_availability_scorecard(settings: Settings, days: int = 30) -> pd.DataFra
     return current.sort_values("availability").reset_index(drop=True)
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_platform_briefing(
+    settings: Settings,
+    hour_key: str,          # "YYYY-MM-DD-HH" — auto-expires cache on the hour
+    n_incidents: int   = 0,
+    n_sustained: int   = 0,
+    n_predicted: int   = 0,
+    n_degraded: int    = 0,
+    worst_country: str = "—",
+    platform_avail: float = 100.0,
+    n_apps_impacted: int  = 0,
+) -> dict:
+    """Return a platform briefing dict with keys: text, mode, generated_at.
+
+    Template mode: fills real data into sentence templates — no API call.
+    Claude mode:   short management-focused prose from the Claude API.
+    Cached for 1 hour per hour_key. Call get_platform_briefing.clear()
+    to force regeneration on demand.
+    """
+    import os
+    from datetime import datetime, timezone as tz
+
+    generated_at = datetime.now(tz.utc).strftime("%H:%M UTC")
+
+    def _template() -> dict:
+        if n_incidents == 0:
+            state = "operating normally with no active incidents"
+        elif n_incidents <= 5:
+            state = "showing localised incidents across a small number of APIs"
+        else:
+            state = "under elevated stress with widespread API anomalies"
+
+        sla_note = (
+            f"below the 99.5% SLA target" if platform_avail < 99.5
+            else "above the 99.5% SLA target"
+        )
+        sustained_note = (
+            f", with {n_sustained} ongoing for multiple consecutive hours"
+            if n_sustained else ""
+        )
+        prediction_note = (
+            f" Early warning systems have flagged {n_predicted} APIs projected "
+            f"to worsen over the next 4 hours."
+            if n_predicted else " No further deterioration is currently projected."
+        )
+        degraded_note = (
+            f" {n_degraded} Operating {'Country' if n_degraded == 1 else 'Countries'} "
+            f"{'is' if n_degraded == 1 else 'are'} showing elevated error rates."
+            if n_degraded else ""
+        )
+        text = (
+            f"The MTN API platform is currently {state}. "
+            f"{n_incidents} {'API is' if n_incidents == 1 else 'APIs are'} showing "
+            f"anomalous behaviour{sustained_note}. "
+            f"Platform-wide availability stands at {platform_avail:.1f}%, {sla_note}."
+            f"{degraded_note}"
+            f"{prediction_note}"
+        )
+        return {"text": text, "mode": "template", "generated_at": generated_at}
+
+    # Use Claude API only when explicitly enabled
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    enabled = os.environ.get("INTELLIGENCE_ENABLED", "false").lower() == "true"
+
+    if not (api_key and enabled):
+        return _template()
+
+    try:
+        import anthropic as _anthropic
+        from apigee_analysis.intelligence import CLAUDE_MODEL
+
+        prompt = f"""You are briefing MTN senior leadership on API platform health.
+Write exactly 3-4 sentences of executive prose. No bullets, no headers, no jargon.
+Focus on business impact — how many APIs, which countries, what the trend is.
+
+Current platform state:
+- {n_incidents} APIs currently anomalous ({n_sustained} sustained for multiple hours)
+- Most affected country: {worst_country}
+- Platform availability: {platform_avail:.1f}% vs 99.5% SLA target
+- {n_apps_impacted} partner applications impacted in the last 25 hours
+- {n_predicted} APIs flagged by early-warning system as likely to worsen
+
+Write the briefing now:"""
+
+        client  = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=256,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = message.content[0].text.strip()
+        if text:
+            return {"text": text, "mode": "claude", "generated_at": generated_at}
+    except Exception:
+        pass
+
+    return _template()
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def get_proxy_list(settings: Settings) -> list[str]:
     flux = f'''
