@@ -187,8 +187,8 @@ def render(settings: Settings) -> None:
         return
 
     # Summary line
-    n_critical  = int((df["hours_until_breach"] == 1).sum())
-    n_high      = int((df["hours_until_breach"] == 2).sum())
+    n_critical  = int((df["hours_remaining"] < 0.5).sum())
+    n_high      = int(((df["hours_remaining"] >= 0.5) & (df["hours_remaining"] < 1.0)).sum())
     n_total     = len(df)
     already_bad = int(df["is_currently_anomalous"].sum())
 
