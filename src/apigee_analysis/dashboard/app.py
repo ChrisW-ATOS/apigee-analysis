@@ -4,7 +4,7 @@ from __future__ import annotations
 import streamlit as st
 
 from apigee_analysis.config import get_settings
-from apigee_analysis.dashboard.views import anomalies, blast, executive, health, incident, monitoring, predictions, scorecard
+from apigee_analysis.dashboard.views import executive, live_monitoring, opco_analytics
 
 st.set_page_config(
     page_title="MTN API Intelligence",
@@ -12,7 +12,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Sidebar branding ──────────────────────────────────────────────────────────
 st.html("""
 <style>
     [data-testid="stSidebar"] {
@@ -50,9 +49,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigate",
-        options=["Platform Overview", "Failure Predictions", "Platform Monitoring",
-                 "Availability Scorecard", "Incident Brief", "Country Health",
-                 "Signal Explorer", "Incident Impact"],
+        options=["Platform Overview", "Monitoring", "OpCo Analytics"],
         label_visibility="collapsed",
     )
 
@@ -65,20 +62,9 @@ with st.sidebar:
     st.caption("Data auto-expires every 60 seconds")
     st.caption(f"Bucket: `{settings.anomaly_bucket}`")
 
-# ── Page routing ──────────────────────────────────────────────────────────────
 if page == "Platform Overview":
     executive.render(settings)
-elif page == "Failure Predictions":
-    predictions.render(settings)
-elif page == "Platform Monitoring":
-    monitoring.render(settings)
-elif page == "Availability Scorecard":
-    scorecard.render(settings)
-elif page == "Incident Brief":
-    incident.render(settings)
-elif page == "Country Health":
-    health.render(settings)
-elif page == "Signal Explorer":
-    anomalies.render(settings)
-elif page == "Incident Impact":
-    blast.render(settings)
+elif page == "Monitoring":
+    live_monitoring.render(settings)
+elif page == "OpCo Analytics":
+    opco_analytics.render(settings)
