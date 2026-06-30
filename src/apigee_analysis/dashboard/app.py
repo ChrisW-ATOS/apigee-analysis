@@ -4,7 +4,7 @@ from __future__ import annotations
 import streamlit as st
 
 from apigee_analysis.config import get_settings
-from apigee_analysis.dashboard.views import anomalies, blast, executive, health, incident, monitoring, scorecard
+from apigee_analysis.dashboard.views import anomalies, blast, executive, health, incident, monitoring, predictions, scorecard
 
 st.set_page_config(
     page_title="MTN API Intelligence",
@@ -50,8 +50,9 @@ with st.sidebar:
 
     page = st.radio(
         "Navigate",
-        options=["Platform Overview", "Platform Monitoring", "Availability Scorecard",
-                 "Incident Brief", "Country Health", "Signal Explorer", "Incident Impact"],
+        options=["Platform Overview", "Failure Predictions", "Platform Monitoring",
+                 "Availability Scorecard", "Incident Brief", "Country Health",
+                 "Signal Explorer", "Incident Impact"],
         label_visibility="collapsed",
     )
 
@@ -67,6 +68,8 @@ with st.sidebar:
 # ── Page routing ──────────────────────────────────────────────────────────────
 if page == "Platform Overview":
     executive.render(settings)
+elif page == "Failure Predictions":
+    predictions.render(settings)
 elif page == "Platform Monitoring":
     monitoring.render(settings)
 elif page == "Availability Scorecard":

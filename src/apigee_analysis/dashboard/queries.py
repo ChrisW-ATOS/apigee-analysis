@@ -649,6 +649,292 @@ def get_availability_scorecard(settings: Settings, days: int = 30) -> pd.DataFra
     return current.sort_values("availability").reset_index(drop=True)
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def get_time_to_failure(settings: Settings) -> pd.DataFrame:
+    """Proxies predicted to breach the anomaly threshold, ranked by urgency.
+
+    Queries the predicted_anomaly measurement for error_rate forecasts,
+    then finds the earliest hours_ahead where |forecast_z| >= 3.0 per proxy.
+    Returns one row per proxy with the time-to-breach and forecast context.
+
+    Columns: proxy, error_class, hours_until_breach, forecast_z, predicted_rate_pct,
+             confidence_pct, is_currently_anomalous
+    """
+    Z_THRESHOLD = 3.0
+
+    # All predicted error-rate forecast points (latest per proxy/class/step)
+    rows = []
+    try:
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -4h)
+          |> filter(fn: (r) => r._measurement == "predicted_anomaly"
+                            and r.measurement == "error_rate")
+          |> filter(fn: (r) => r._field == "forecast_z_score"
+                            or r._field == "predicted_error_rate")
+          |> group(columns: ["apiproxy", "error_class", "hours_ahead", "_field"])
+          |> last()
+          |> pivot(rowKey:["_time","apiproxy","error_class","hours_ahead"],
+                   columnKey:["_field"], valueColumn:"_value")
+        '''):
+            for rec in table.records:
+                proxy = rec.values.get("apiproxy", "")
+                ec    = rec.values.get("error_class", "")
+                h     = int(rec.values.get("hours_ahead", 1))
+                fz    = float(rec.values.get("forecast_z_score") or 0)
+                pr    = float(rec.values.get("predicted_error_rate") or 0)
+                if proxy:
+                    rows.append({"proxy": proxy, "error_class": ec,
+                                 "hours_ahead": h, "forecast_z": fz, "predicted_rate": pr})
+    except Exception:
+        return pd.DataFrame()
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+
+    # For each proxy+class find the earliest hour where threshold is breached
+    results = []
+    for (proxy, ec), grp in df.groupby(["proxy", "error_class"]):
+        grp = grp.sort_values("hours_ahead")
+        breach = grp[grp["forecast_z"].abs() >= Z_THRESHOLD]
+        if breach.empty:
+            continue
+        first = breach.iloc[0]
+        results.append({
+            "proxy":                proxy,
+            "error_class":          ec,
+            "hours_until_breach":   int(first["hours_ahead"]),
+            "forecast_z":           float(first["forecast_z"]),
+            "predicted_rate_pct":   float(first["predicted_rate"]) * 100,
+            # Confidence: how far above threshold the forecast is (0-100)
+            "confidence_pct":       min(100, (abs(float(first["forecast_z"])) - Z_THRESHOLD) / Z_THRESHOLD * 100),
+        })
+
+    if not results:
+        return pd.DataFrame()
+
+    out = pd.DataFrame(results)
+    # Drop numerically degenerate predictions (AR(1) overflow on sparse series)
+    out = out[out["forecast_z"].abs() < 1000]
+    out = out.sort_values("hours_until_breach")
+
+    # Mark proxies that are already actively anomalous
+    try:
+        active = get_active_anomalies(settings)
+        active_proxies = set(active["proxy"].unique()) if not active.empty else set()
+    except Exception:
+        active_proxies = set()
+
+    out["is_currently_anomalous"] = out["proxy"].isin(active_proxies)
+    return out.reset_index(drop=True)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_proxy_context(settings: Settings, proxy: str) -> dict:
+    """Gather all context needed to explain a failure prediction for one proxy.
+
+    Returns a dict with: z_score_trend (list), current_error_rate, blast_radius_apps,
+    total_calls_at_risk, incident_hours_30d, forecast_rates (list by hours_ahead),
+    error_class.
+    """
+    ctx: dict = {
+        "proxy":               proxy,
+        "z_score_trend":       [],
+        "current_error_rate":  None,
+        "error_class":         "unknown",
+        "blast_apps":          [],
+        "total_calls_at_risk": 0,
+        "incident_hours_30d":  0,
+        "forecast_rates":      {},   # hours_ahead → predicted_rate_pct
+    }
+
+    try:
+        # 12h z-score trend
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -12h)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly"
+                            and r.apiproxy == "{proxy}")
+          |> filter(fn: (r) => r._field == "z_score")
+          |> group(columns: ["error_class"])
+          |> sort(columns: ["_time"])
+        '''):
+            for rec in table.records:
+                ctx["z_score_trend"].append(float(rec.get_value() or 0))
+                ctx["error_class"] = rec.values.get("error_class", "unknown")
+
+        # Current error rate
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -4h)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly"
+                            and r.apiproxy == "{proxy}")
+          |> filter(fn: (r) => r._field == "error_rate")
+          |> group(columns: ["error_class"])
+          |> last()
+        '''):
+            for rec in table.records:
+                ctx["current_error_rate"] = float(rec.get_value() or 0) * 100
+                ctx["error_class"] = rec.values.get("error_class", "unknown")
+
+        # Blast radius — who gets affected
+        br_rows = []
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -25h)
+          |> filter(fn: (r) => r._measurement == "blast_radius"
+                            and r.apiproxy == "{proxy}")
+          |> filter(fn: (r) => r._field == "call_count")
+          |> group(columns: ["developer_app", "xcountrycode"])
+          |> sum()
+          |> group() |> sort(columns: ["_value"], desc: true) |> limit(n: 8)
+        '''):
+            for rec in table.records:
+                app   = rec.values.get("developer_app", "(not set)")
+                cntry = rec.values.get("xcountrycode", "")
+                calls = float(rec.get_value() or 0)
+                if app not in ("(not set)", "") and calls > 0:
+                    br_rows.append({"app": app, "country": cntry, "calls": int(calls)})
+        ctx["blast_apps"]          = br_rows
+        ctx["total_calls_at_risk"] = sum(r["calls"] for r in br_rows)
+
+        # Incident hours in last 30 days
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -30d)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly"
+                            and r.apiproxy == "{proxy}"
+                            and r.is_anomaly == "true")
+          |> filter(fn: (r) => r._field == "z_score")
+          |> group() |> count()
+        '''):
+            for rec in table.records:
+                ctx["incident_hours_30d"] = int(rec.get_value() or 0)
+
+        # 4-hour predicted error rates
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -4h)
+          |> filter(fn: (r) => r._measurement == "predicted_anomaly"
+                            and r.apiproxy == "{proxy}"
+                            and r.measurement == "error_rate")
+          |> filter(fn: (r) => r._field == "predicted_error_rate")
+          |> group(columns: ["hours_ahead"])
+          |> last()
+        '''):
+            for rec in table.records:
+                h = int(rec.values.get("hours_ahead", 1))
+                ctx["forecast_rates"][h] = float(rec.get_value() or 0) * 100
+
+    except Exception:
+        pass
+
+    return ctx
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_proxy_explanation(
+    settings: Settings,
+    proxy: str,
+    hour_key: str,           # YYYY-MM-DD-HH — cache key
+    error_class: str = "",
+    hours_until_breach: int = 2,
+    current_error_rate: float = 0.0,
+    forecast_rate_pct: float = 0.0,
+    total_calls_at_risk: int = 0,
+    n_apps: int = 0,
+    incident_hours_30d: int = 0,
+) -> dict:
+    """Generate a cause-and-effect explanation for a predicted API failure.
+
+    Template mode: fills real data into plain-English sentences.
+    Claude mode: deeper analysis using the Claude API (when INTELLIGENCE_ENABLED=true).
+    Returns: {"text": str, "mode": "claude"|"template", "generated_at": str}
+    """
+    import os
+    from datetime import datetime, timezone as tz
+    from apigee_analysis.dashboard.labels import friendly_proxy
+
+    generated_at = datetime.now(tz.utc).strftime("%H:%M UTC")
+    name         = friendly_proxy(proxy)
+
+    error_type = "app errors (4xx — requests being rejected)" if error_class == "client" \
+                 else "service failures (5xx — backend errors)" if error_class == "server" \
+                 else "error rate anomalies"
+
+    def _template() -> dict:
+        current_str  = f"{current_error_rate:.1f}%" if current_error_rate else "currently normal"
+        forecast_str = f"{forecast_rate_pct:.1f}%" if forecast_rate_pct else "above the alert threshold"
+        timing       = f"within {hours_until_breach} hour{'s' if hours_until_breach != 1 else ''}"
+        impact_str   = (
+            f"{total_calls_at_risk:,} API calls across {n_apps} partner "
+            f"application{'s' if n_apps != 1 else ''} will be at risk"
+        ) if total_calls_at_risk > 0 else f"{n_apps} partner applications may be affected"
+        history_str  = (
+            f"This API has experienced {incident_hours_30d} anomalous hours in the last 30 days, "
+            f"suggesting a recurring issue."
+        ) if incident_hours_30d > 5 else "This appears to be an emerging issue — no significant recent history."
+
+        text = (
+            f"**What is happening:** {name} is showing rising {error_type}. "
+            f"The current error rate is {current_str}, and the predictive model forecasts "
+            f"it will reach {forecast_str} — breaching the alert threshold — {timing}.\n\n"
+            f"**Likely cause:** {'App-side request failures (4xx errors) typically indicate bad requests, '
+             'expired authentication tokens, or a breaking change in the API contract. '
+             'Check for recent client deployments or credential rotations.'
+             if error_class == 'client' else
+             'Backend service failures (5xx errors) typically indicate an infrastructure problem — '
+             'a downstream service dependency, database timeout, or capacity issue. '
+             'Check the backend service health and recent deployments.'}\n\n"
+            f"**Who is affected:** If this API fails, {impact_str}. "
+            f"These partners will be unable to complete requests to this API until the issue resolves.\n\n"
+            f"**History:** {history_str}"
+        )
+        return {"text": text, "mode": "template", "generated_at": generated_at}
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    enabled = os.environ.get("INTELLIGENCE_ENABLED", "false").lower() == "true"
+
+    if not (api_key and enabled):
+        return _template()
+
+    try:
+        import anthropic as _anthropic
+        from apigee_analysis.intelligence import CLAUDE_MODEL
+
+        prompt = f"""You are an API reliability engineer. Explain this predicted failure in plain English for a technical audience. Use markdown formatting with bold headers.
+
+API: {name}
+Error type: {error_type}
+Current error rate: {current_error_rate:.1f}%
+Predicted error rate in {hours_until_breach}h: {forecast_rate_pct:.1f}%
+Partner apps at risk: {n_apps} ({total_calls_at_risk:,} calls)
+Historical anomalous hours (30d): {incident_hours_30d}
+
+Write exactly 4 short paragraphs with bold headers:
+1. **What is happening** — describe the current trend and prediction
+2. **Likely cause** — based on error type ({error_class}), what is probably wrong
+3. **Who is affected** — partners, call volumes, business impact
+4. **Recommended action** — one or two concrete steps to investigate
+
+Be specific. Use the actual numbers. Plain English — no jargon."""
+
+        client  = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model=CLAUDE_MODEL, max_tokens=400,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = message.content[0].text.strip()
+        if text:
+            return {"text": text, "mode": "claude", "generated_at": generated_at}
+    except Exception:
+        pass
+
+    return _template()
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_platform_briefing(
     settings: Settings,
