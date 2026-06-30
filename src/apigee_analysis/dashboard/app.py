@@ -4,7 +4,7 @@ from __future__ import annotations
 import streamlit as st
 
 from apigee_analysis.config import get_settings
-from apigee_analysis.dashboard.views import executive, live_monitoring, opco_analytics
+from apigee_analysis.dashboard.views import executive, incident_response, live_monitoring, opco_analytics
 
 st.set_page_config(
     page_title="MTN API Intelligence",
@@ -49,7 +49,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigate",
-        options=["Platform Overview", "Monitoring", "OpCo Analytics"],
+        options=["Platform Overview", "Monitoring", "Incident Response", "OpCo Analytics"],
         label_visibility="collapsed",
     )
 
@@ -66,5 +66,7 @@ if page == "Platform Overview":
     executive.render(settings)
 elif page == "Monitoring":
     live_monitoring.render(settings)
+elif page == "Incident Response":
+    incident_response.render(settings)
 elif page == "OpCo Analytics":
     opco_analytics.render(settings)

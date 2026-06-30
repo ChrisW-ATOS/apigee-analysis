@@ -1130,6 +1130,92 @@ def get_proxy_list(settings: Settings) -> list[str]:
     return sorted(proxies)
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def get_incident_priorities(settings: Settings) -> pd.DataFrame:
+    """Active anomalous proxies ranked by business impact for incident response.
+
+    Joins error_rate_anomaly (z_score + error_rate + duration) with blast_radius
+    (affected apps and call volumes) to produce a prioritised incident list.
+
+    Priority = total_calls_at_risk × error_rate × (1 + consecutive_hours / 10)
+
+    Returns columns: proxy, error_class, z_score, error_rate, consecutive_hours,
+                     sustained, total_calls, unique_apps, unique_countries,
+                     priority, top_apps (list of top affected app names).
+    """
+    # Get current error rates, z_scores, and duration via pivot
+    rows = []
+    try:
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -25h)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+          |> filter(fn: (r) => r._field == "z_score" or r._field == "error_rate"
+                            or r._field == "consecutive_hours")
+          |> group(columns: ["apiproxy", "error_class", "is_anomaly", "sustained"])
+          |> last()
+          |> pivot(rowKey:["_time","apiproxy","error_class","is_anomaly","sustained"],
+                   columnKey:["_field"], valueColumn:"_value")
+          |> filter(fn: (r) => r.is_anomaly == "true")
+        '''):
+            for rec in table.records:
+                proxy = rec.values.get("apiproxy", "")
+                ec    = rec.values.get("error_class", "")
+                if proxy and ec:
+                    rows.append({
+                        "proxy":             proxy,
+                        "error_class":       ec,
+                        "z_score":           float(rec.values.get("z_score") or 0),
+                        "error_rate":        float(rec.values.get("error_rate") or 0),
+                        "consecutive_hours": int(float(rec.values.get("consecutive_hours") or 1)),
+                        "sustained":         rec.values.get("sustained", "false") == "true",
+                    })
+    except Exception:
+        return pd.DataFrame()
+
+    if not rows:
+        return pd.DataFrame()
+
+    incidents = pd.DataFrame(rows).drop_duplicates(subset=["proxy", "error_class"])
+
+    # Join with blast radius for business impact
+    blast = get_blast_radius(settings, hours_back=25)
+    if not blast.empty:
+        br_agg = (
+            blast[blast["proxy"].isin(set(incidents["proxy"]))]
+            .groupby("proxy")
+            .agg(
+                total_calls=("call_count", "sum"),
+                unique_apps=("app",         lambda x: x[x != "(not set)"].nunique()),
+                unique_countries=("country", "nunique"),
+                top_apps=("app", lambda x: x[x != "(not set)"].value_counts().head(3).index.tolist()),
+            )
+            .reset_index()
+        )
+        incidents = incidents.merge(br_agg, on="proxy", how="left")
+    else:
+        incidents["total_calls"]      = 0
+        incidents["unique_apps"]      = 0
+        incidents["unique_countries"] = 0
+        incidents["top_apps"]         = [[] for _ in range(len(incidents))]
+
+    incidents = incidents.fillna({"total_calls": 0, "unique_apps": 0, "unique_countries": 0})
+    incidents["top_apps"] = incidents["top_apps"].apply(lambda x: x if isinstance(x, list) else [])
+
+    # Priority score
+    incidents["priority"] = (
+        incidents["total_calls"] * incidents["error_rate"] * (1 + incidents["consecutive_hours"] / 10)
+    ).fillna(0)
+
+    # Fall back to z_score × calls when error_rate not available
+    mask = incidents["priority"] == 0
+    incidents.loc[mask, "priority"] = (
+        incidents.loc[mask, "total_calls"] * incidents.loc[mask, "z_score"].abs()
+    )
+
+    return incidents.sort_values("priority", ascending=False).reset_index(drop=True)
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def get_co_failure_history(
     settings: Settings,
