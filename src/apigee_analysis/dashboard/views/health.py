@@ -109,12 +109,13 @@ def render(settings: Settings) -> None:
     st.divider()
     anomalous = df[df["is_anomaly"]]
     c1, c2, c3, c4 = st.columns(4)
+    worst_rate_row = df.loc[df["error_rate_pct"].idxmax()]
     c1.metric("Countries Monitored", len(df))
     c2.metric("Degraded Countries",  len(anomalous),
               delta=f"{len(anomalous)} need attention" if len(anomalous) else None,
               delta_color="inverse")
-    c3.metric("Highest Alert Level",
-              f"{df['z_score'].abs().max():.1f}×",
-              delta=df.loc[df['z_score'].abs().idxmax(), 'name'])
+    c3.metric("Highest Error Rate",
+              f"{worst_rate_row['error_rate_pct']:.1f}%",
+              delta=worst_rate_row["name"])
     c4.metric("Platform Error Rate",
               f"{df['error_rate_pct'].mean():.1f}%")

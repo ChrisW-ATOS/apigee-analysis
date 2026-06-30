@@ -70,13 +70,16 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
     rows: list[dict] = []
 
     try:
-        # Traffic anomalies
+        # Traffic anomalies — last() per proxy gives CURRENT state, not historical max.
+        # Filter is_anomaly=true after last() so proxies that recovered are excluded.
         flux = f'''
         from(bucket: "{settings.anomaly_bucket}")
           |> range(start: -25h)
-          |> filter(fn: (r) => r._measurement == "traffic_anomaly" and r.is_anomaly == "true")
-          |> pivot(rowKey:["_time","apiproxy"], columnKey:["_field"], valueColumn:"_value")
-          |> sort(columns:["_time"], desc: true)
+          |> filter(fn: (r) => r._measurement == "traffic_anomaly")
+          |> filter(fn: (r) => r._field == "z_score")
+          |> group(columns: ["apiproxy"])
+          |> last()
+          |> filter(fn: (r) => r.is_anomaly == "true")
         '''
         for table in _query_raw(settings, flux):
             for rec in table.records:
@@ -85,20 +88,22 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
                     "proxy":             rec.values.get("apiproxy", ""),
                     "type":              "Traffic",
                     "error_class":       "",
-                    "z_score":           float(rec.values.get("z_score") or 0),
+                    "z_score":           float(rec.get_value() or 0),
                     "error_rate":        None,
-                    "traffic":           float(rec.values.get("traffic") or 0),
+                    "traffic":           None,
                     "sustained":         rec.values.get("sustained", "false") == "true",
                     "consecutive_hours": int(float(rec.values.get("consecutive_hours") or 1)),
                 })
 
-        # Error rate anomalies
+        # Error rate anomalies — same pattern: last() per (proxy, error_class)
         flux = f'''
         from(bucket: "{settings.anomaly_bucket}")
           |> range(start: -25h)
-          |> filter(fn: (r) => r._measurement == "error_rate_anomaly" and r.is_anomaly == "true")
-          |> pivot(rowKey:["_time","apiproxy","error_class"], columnKey:["_field"], valueColumn:"_value")
-          |> sort(columns:["_time"], desc: true)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+          |> filter(fn: (r) => r._field == "z_score")
+          |> group(columns: ["apiproxy", "error_class"])
+          |> last()
+          |> filter(fn: (r) => r.is_anomaly == "true")
         '''
         for table in _query_raw(settings, flux):
             for rec in table.records:
@@ -107,19 +112,22 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
                     "proxy":             rec.values.get("apiproxy", ""),
                     "type":              "Error Rate",
                     "error_class":       rec.values.get("error_class", ""),
-                    "z_score":           float(rec.values.get("z_score") or 0),
-                    "error_rate":        float(rec.values.get("error_rate") or 0),
+                    "z_score":           float(rec.get_value() or 0),
+                    "error_rate":        None,
                     "traffic":           None,
                     "sustained":         rec.values.get("sustained", "false") == "true",
                     "consecutive_hours": int(float(rec.values.get("consecutive_hours") or 1)),
                 })
-        # Multivariate anomalies
+
+        # Multivariate anomalies — last() per proxy
         flux = f'''
         from(bucket: "{settings.anomaly_bucket}")
           |> range(start: -25h)
-          |> filter(fn: (r) => r._measurement == "multivariate_anomaly" and r.is_anomaly == "true")
+          |> filter(fn: (r) => r._measurement == "multivariate_anomaly")
           |> filter(fn: (r) => r._field == "anomaly_score")
-          |> sort(columns:["_time"], desc: true)
+          |> group(columns: ["apiproxy"])
+          |> last()
+          |> filter(fn: (r) => r.is_anomaly == "true")
         '''
         for table in _query_raw(settings, flux):
             for rec in table.records:
@@ -142,9 +150,7 @@ def get_active_anomalies(settings: Settings) -> pd.DataFrame:
 
     df = pd.DataFrame(rows)
     df = df.sort_values("z_score", key=lambda s: s.abs(), ascending=False)
-    # Deduplicate to most recent per proxy+type+error_class
-    df = df.drop_duplicates(subset=["proxy", "type", "error_class"])
-    return df.reset_index(drop=True)
+    return df.drop_duplicates(subset=["proxy", "type", "error_class"]).reset_index(drop=True)
 
 
 @st.cache_data(ttl=60, show_spinner=False)

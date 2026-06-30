@@ -200,21 +200,23 @@ def render(settings: Settings) -> None:
     n_apis      = len(proxy_list)
     n_predicted = len(predicted_df)
 
+    # Most affected = country with highest CURRENT error rate (absolute, not z_score).
+    # Z-score compares against the country's own baseline — a country that is
+    # historically bad shows a low z_score even at 33% error rate. Absolute rate
+    # is what matters for operational impact.
     worst_country = "—"
     if not country_df.empty:
-        worst = country_df.loc[country_df["z_score"].abs().idxmax()]
-        worst_country = _COUNTRY_NAMES.get(worst["country"], worst["country"])
-        if not worst["is_anomaly"] and abs(worst["z_score"]) <= 1.5:
-            worst_country = "None — all healthy"
+        worst = country_df.loc[country_df["error_rate_pct"].idxmax()]
+        if worst["error_rate_pct"] > 0.5:   # only show if meaningfully elevated
+            worst_country = _COUNTRY_NAMES.get(worst["country"], worst["country"])
+            worst_country += f" ({worst['error_rate_pct']:.1f}%)"
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("APIs Monitored",   n_apis)
     c2.metric("Active Incidents", n_incidents,
-              delta=f"{n_sustained} ongoing" if n_sustained else None,
+              delta=f"{n_sustained} sustained" if n_sustained else None,
               delta_color="inverse")
-    c3.metric("Early Warnings",   n_predicted,
-              delta="projected to worsen" if n_predicted else None,
-              delta_color="inverse")
+    c3.metric("Early Warnings",   n_predicted)
     c4.metric("Most Affected",    worst_country)
 
     st.divider()
