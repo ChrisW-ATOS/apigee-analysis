@@ -173,9 +173,19 @@ def _briefing_section(settings: Settings, **kwargs) -> None:
 """)
 
 
-def _opco_status(is_anomaly: bool, z: float) -> str:
-    if is_anomaly:       return "degraded"
-    if abs(z) > 1.5:     return "watch"
+# Absolute error rate thresholds for OpCo status.
+# Z-score detects changes from a country's own baseline — a country historically
+# at 30% error rate will have z≈0 and appear "healthy" by z_score alone.
+# These fixed thresholds reflect actual business health, not relative anomaly.
+_DEGRADED_THRESHOLD = 10.0   # >10% error rate = degraded regardless of history
+_WATCH_THRESHOLD    =  3.0   # >3%  error rate = watch
+
+
+def _opco_status(is_anomaly: bool, z: float, error_rate_pct: float = 0.0) -> str:
+    if is_anomaly or error_rate_pct > _DEGRADED_THRESHOLD:
+        return "degraded"
+    if abs(z) > 1.5 or error_rate_pct > _WATCH_THRESHOLD:
+        return "watch"
     return "healthy"
 
 
@@ -183,7 +193,7 @@ def _opco_grid(country_df) -> None:
     cards_html = ""
     for row in sorted(country_df.to_dict("records"), key=lambda r: r["country"]):
         name   = _COUNTRY_NAMES.get(row["country"], row["country"])
-        status = _opco_status(row["is_anomaly"], row["z_score"])
+        status = _opco_status(row["is_anomaly"], row["z_score"], row.get("error_rate_pct", 0.0))
         color  = _STATUS_COLOR[status]
         label  = _STATUS_LABEL[status]
         er     = row.get("error_rate_pct", 0)
@@ -353,7 +363,9 @@ def render(settings: Settings) -> None:
     n_sustained    = int(univariate["sustained"].sum()) if not univariate.empty else 0
     n_apis         = len(proxy_list)
     n_predicted    = len(predicted_df)
-    n_degraded     = int(country_df["is_anomaly"].sum()) if not country_df.empty else 0
+    # Count degraded countries by ABSOLUTE error rate, not z_score.
+    # A country historically at 30% error rate has z≈0 but is genuinely degraded.
+    n_degraded     = int((country_df["error_rate_pct"] > _DEGRADED_THRESHOLD).sum()) if not country_df.empty else 0
     platform_avail = (100 - country_df["error_rate_pct"].mean()) if not country_df.empty else 100.0
 
     worst_country      = "—"
