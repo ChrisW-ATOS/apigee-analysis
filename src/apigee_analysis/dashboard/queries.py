@@ -1128,3 +1128,112 @@ def get_proxy_list(settings: Settings) -> list[str]:
     except Exception:
         pass
     return sorted(proxies)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Co-failure correlation model
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_anomaly_history(settings: Settings) -> pd.DataFrame:
+    """All anomalous hours per proxy+error_class over available history.
+
+    Returns columns: proxy, error_class, hour (UTC timestamp), is_anomalous.
+    Cached for 1 hour — history doesn't change fast, and building it is expensive.
+    """
+    rows = []
+    try:
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -60d)
+          |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+          |> filter(fn: (r) => r._field == "z_score")
+          |> group(columns: ["apiproxy", "error_class", "is_anomaly"])
+          |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
+        '''):
+            for rec in table.records:
+                proxy      = rec.values.get("apiproxy", "")
+                ec         = rec.values.get("error_class", "")
+                is_anom    = rec.values.get("is_anomaly", "false") == "true"
+                ts         = rec.get_time()
+                if proxy and ec:
+                    rows.append({
+                        "proxy":       proxy,
+                        "error_class": ec,
+                        "hour":        pd.Timestamp(ts).floor("h"),
+                        "is_anomalous": is_anom,
+                    })
+    except Exception:
+        return pd.DataFrame()
+    return pd.DataFrame(rows) if rows else pd.DataFrame()
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_cascade_predictions(settings: Settings) -> pd.DataFrame:
+    """Predict which non-failing APIs are at elevated risk based on co-failure history.
+
+    Builds a conditional probability model from anomaly history, applies it to
+    the current platform state, and returns a ranked list of at-risk proxies.
+
+    Returns columns: proxy, error_class, combined_prob, driver_proxy,
+                     driver_ec, driver_prob, driver_count_a, driver_count_ab,
+                     best_lag, n_drivers, history_days
+    """
+    from apigee_analysis.correlation import (
+        build_anomaly_events,
+        compute_conditional_probs,
+        predict_cascade,
+    )
+
+    # Load history and current state
+    history_df = get_anomaly_history(settings)
+    active_df  = get_active_anomalies(settings)
+
+    if history_df.empty:
+        return pd.DataFrame()
+
+    history_days = (
+        (pd.Timestamp.now(tz="UTC") - history_df["hour"].min().tz_localize("UTC")
+         if history_df["hour"].min().tzinfo is None
+         else pd.Timestamp.now(tz="UTC") - history_df["hour"].min())
+        .days
+    )
+
+    # Build co-failure model
+    events     = build_anomaly_events(history_df)
+    cond_probs = compute_conditional_probs(events)
+
+    if cond_probs.empty:
+        return pd.DataFrame()
+
+    # Current anomalous proxy keys
+    current_anomalous: set[str] = set()
+    if not active_df.empty:
+        for _, row in active_df.iterrows():
+            current_anomalous.add(f"{row['proxy']}|{row['error_class']}")
+
+    all_keys = set(events.keys())
+
+    predictions = predict_cascade(cond_probs, current_anomalous, all_keys)
+    if predictions.empty:
+        return pd.DataFrame()
+
+    # Decode keys back to proxy + error_class
+    def split_key(key: str) -> tuple[str, str]:
+        parts = key.rsplit("|", 1)
+        return (parts[0], parts[1]) if len(parts) == 2 else (key, "")
+
+    predictions[["proxy", "error_class"]]         = predictions["key_b"].apply(
+        lambda k: pd.Series(split_key(k))
+    )
+    predictions[["driver_proxy", "driver_ec"]]    = predictions["best_driver_key"].apply(
+        lambda k: pd.Series(split_key(k))
+    )
+    predictions["history_days"] = history_days
+
+    return predictions[[
+        "proxy", "error_class", "best_single_prob", "combined_prob",
+        "driver_proxy", "driver_ec",
+        "driver_prob", "driver_count_a", "driver_count_ab",
+        "best_lag", "n_drivers", "history_days",
+    ]].reset_index(drop=True)

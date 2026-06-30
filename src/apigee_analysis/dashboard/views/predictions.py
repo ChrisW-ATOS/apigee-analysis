@@ -1,7 +1,5 @@
-"""Failure Predictions — time-to-failure estimates with on-demand explanations."""
+"""Failure Predictions — co-failure cascade risk based on historical patterns."""
 from __future__ import annotations
-
-from datetime import datetime, timezone
 
 import streamlit as st
 
@@ -9,199 +7,133 @@ from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
 from apigee_analysis.dashboard.labels import friendly_proxy
 
-_HOURS_COLOR = {1: "#EF4444", 2: "#F59E0B", 3: "#D97706", 4: "#64748B"}
-_HOURS_LABEL = {1: "CRITICAL",  2: "HIGH",     3: "MEDIUM",   4: "LOW"}
+
+def _risk_color(prob: float) -> str:
+    if prob >= 0.75: return "#EF4444"
+    if prob >= 0.55: return "#F59E0B"
+    return "#64748B"
 
 
-def _format_remaining(hours: float) -> str:
-    """Format hours remaining as human-readable string."""
-    total_min = int(hours * 60)
-    if total_min < 60:
-        return f"{total_min} min"
-    h, m = divmod(total_min, 60)
-    return f"{h}h {m}m" if m else f"{h}h"
+def _risk_label(prob: float) -> str:
+    if prob >= 0.75: return "HIGH"
+    if prob >= 0.55: return "MEDIUM"
+    return "WATCH"
 
 
-def _ttf_card(row: dict, idx: int) -> None:
-    """Render a single time-to-failure card and an optional explanation below it."""
-    proxy       = row["proxy"]
-    ec          = row["error_class"]
-    hrs_left    = float(row["hours_remaining"])
-    fz          = float(row["forecast_z"])
-    rate_pct    = float(row["predicted_rate_pct"])
-    conf        = float(row["confidence_pct"])
-    failure_at  = row.get("failure_at")
-    current     = row.get("is_currently_anomalous", False)
-
-    label    = friendly_proxy(proxy)
-    ec_str   = "App Errors (4xx)" if ec == "client" else "Service Failures (5xx)" if ec == "server" else "Errors"
-    status   = "⚠ Already failing" if current else "● Predicted"
-    time_str = _format_remaining(hrs_left)
-
-    # Colour by urgency: <30min = critical red, <1h = amber, <2h = orange, else grey
-    if hrs_left < 0.5:
-        color, urgency = "#EF4444", "CRITICAL"
-    elif hrs_left < 1.0:
-        color, urgency = "#F59E0B", "HIGH"
-    elif hrs_left < 2.0:
-        color, urgency = "#D97706", "MEDIUM"
-    else:
-        color, urgency = "#64748B", "LOW"
-
-    failure_label = failure_at.strftime("%H:%M UTC") if failure_at is not None else "—"
-
-    # Bar fill: proportion of a 4-hour window consumed
-    bar_fill = max(5, int((1 - hrs_left / 4) * 100))
-
-    st.html(f"""
-<div style="background:#FFFFFF;border:2px solid {color};border-radius:12px;
-            padding:20px 24px;margin-bottom:4px;
-            box-shadow:0 1px 4px rgba(0,0,0,0.08);">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div>
-            <span style="font-size:16px;font-weight:700;color:#1E293B;">{label}</span>
-            <span style="font-size:12px;color:#94A3B8;margin-left:10px;">{ec_str}</span>
-        </div>
-        <span style="background:{color};color:#FFFFFF;padding:4px 12px;border-radius:20px;
-                     font-size:11px;font-weight:700;letter-spacing:0.07em;">{urgency}</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:24px;">
-        <div style="text-align:center;min-width:110px;">
-            <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;
-                        letter-spacing:0.07em;margin-bottom:4px;">Threshold breach in</div>
-            <div style="font-size:40px;font-weight:900;color:{color};line-height:1;">{time_str}</div>
-            <div style="font-size:11px;color:#94A3B8;margin-top:4px;">at {failure_label}</div>
-        </div>
-        <div style="flex:1;">
-            <div style="display:flex;justify-content:space-between;
-                        font-size:11px;color:#64748B;margin-bottom:4px;">
-                <span>Predicted error rate at breach: {rate_pct:.1f}%</span>
-                <span>Alert threshold →</span>
-            </div>
-            <div style="background:#F1F5F9;border-radius:6px;height:14px;position:relative;">
-                <div style="background:{color};height:14px;border-radius:6px;
-                            width:{bar_fill:.0f}%;"></div>
-                <div style="position:absolute;right:0;top:-3px;width:2px;height:20px;
-                            background:#1E293B;border-radius:1px;"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;
-                        font-size:10px;color:#94A3B8;margin-top:4px;">
-                <span>{status}</span>
-                <span>Signal strength: {fz:.1f}σ · Confidence: {conf:.0f}%</span>
-            </div>
-        </div>
-    </div>
-</div>
-""")
-
-    # Explain button + explanation panel
-    explain_key = f"explain_{idx}"
-    col_l, col_r = st.columns([4, 1])
-    with col_r:
-        if st.button("Explain cause & effect", key=f"btn_{idx}", use_container_width=True):
-            if st.session_state.get("active_explain") == explain_key:
-                st.session_state.pop("active_explain", None)
-            else:
-                st.session_state["active_explain"] = explain_key
-
-    if st.session_state.get("active_explain") == explain_key:
-        with st.spinner(f"Generating explanation for {label}..."):
-            hour_key = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H")
-            ctx      = queries.get_proxy_context(settings_ref[0], proxy)
-            expl     = queries.get_proxy_explanation(
-                settings_ref[0],
-                proxy      = proxy,
-                hour_key   = hour_key,
-                error_class             = ec,
-                hours_until_breach      = h,
-                current_error_rate      = ctx.get("current_error_rate") or 0.0,
-                forecast_rate_pct       = rate_pct,
-                total_calls_at_risk     = ctx.get("total_calls_at_risk", 0),
-                n_apps                  = len(ctx.get("blast_apps", [])),
-                incident_hours_30d      = ctx.get("incident_hours_30d", 0),
-            )
-
-        mode_color = "#7C3AED" if expl["mode"] == "claude" else "#64748B"
-        mode_badge = "Claude AI" if expl["mode"] == "claude" else "Auto-generated"
-
-        import re
-        raw_text = expl["text"]
-        # Convert **bold** to HTML <b>
-        html_text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", raw_text)
-        # Convert newlines to <br>
-        html_text = html_text.replace("\n\n", "</p><p style='margin:10px 0 0 0;'>")
-        html_text = html_text.replace("\n", "<br>")
-
-        st.html(f"""
-<div style="border-left:4px solid {mode_color};background:#F8FAFC;
-            padding:18px 22px;border-radius:8px;margin:4px 0 16px 0;">
-    <div style="font-size:10px;color:{mode_color};font-weight:700;
-                text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px;">
-        {mode_badge} · {expl.get('generated_at', '')}
-    </div>
-    <p style="font-size:14px;color:#1E293B;line-height:1.8;margin:0;">
-        {html_text}
-    </p>
-</div>
-""")
-
-        # Blast radius mini-table if available
-        blast = ctx.get("blast_apps", [])
-        if blast:
-            st.caption("Partner applications at risk if this API fails:")
-            import pandas as pd
-            br_df = pd.DataFrame(blast[:6])
-            br_df["calls"] = br_df["calls"].apply(lambda x: f"{int(x):,}")
-            br_df.columns = ["Application", "Country", "Calls (25h)"]
-            st.dataframe(br_df, use_container_width=True, hide_index=True)
-
-        st.write("")
-
-
-# Module-level settings holder so _ttf_card can access it without threading it
-# through every call signature. Set once in render().
-settings_ref: list = []
+def _confidence_note(count_a: int, count_ab: int, history_days: int) -> str:
+    return (
+        f"Based on {count_ab} co-failures out of {count_a} "
+        f"observed failures in the last {history_days} days"
+    )
 
 
 def render(settings: Settings) -> None:
-    settings_ref.clear()
-    settings_ref.append(settings)
-
-    if "active_explain" not in st.session_state:
-        st.session_state["active_explain"] = None
-
     st.header("Failure Predictions")
     st.caption(
-        "APIs currently trending toward the alert threshold — ranked by urgency. "
-        "Predictions are generated hourly by the AR(1) model fitted on STL residuals."
+        "These predictions are not trend extrapolations. They are conditional "
+        "probabilities derived from observed co-failure patterns: given what is "
+        "currently failing, what has historically followed?"
     )
 
-    with st.spinner("Loading predictions..."):
-        df = queries.get_time_to_failure(settings)
+    with st.spinner("Building co-failure model from historical data..."):
+        df = queries.get_cascade_predictions(settings)
 
     if df.empty:
-        st.success(
-            "No APIs are currently predicted to breach the alert threshold in the next 4 hours. "
-            "The platform is stable."
+        st.info(
+            "No cascade predictions available. This can occur when no APIs are "
+            "currently anomalous, or when insufficient co-failure history exists "
+            "to compute reliable probabilities."
         )
         return
 
-    # Summary line
-    n_critical  = int((df["hours_remaining"] < 0.5).sum())
-    n_high      = int(((df["hours_remaining"] >= 0.5) & (df["hours_remaining"] < 1.0)).sum())
-    n_total     = len(df)
-    already_bad = int(df["is_currently_anomalous"].sum())
-
-    summary_parts = []
-    if n_critical:  summary_parts.append(f"**{n_critical} critical** (≤1h)")
-    if n_high:      summary_parts.append(f"**{n_high} high** (≤2h)")
-    if already_bad: summary_parts.append(f"**{already_bad} already failing**")
+    history_days = int(df["history_days"].iloc[0]) if "history_days" in df.columns else "?"
+    n_high   = int((df["best_single_prob"] >= 0.75).sum())
+    n_medium = int(((df["best_single_prob"] >= 0.55) & (df["best_single_prob"] < 0.75)).sum())
 
     st.markdown(
-        f"**{n_total} API{'s' if n_total != 1 else ''} flagged** — "
-        + (", ".join(summary_parts) if summary_parts else "see details below")
+        f"**{len(df)} APIs at elevated risk** — "
+        f"{'**' + str(n_high) + ' HIGH,** ' if n_high else ''}"
+        f"{n_medium} MEDIUM · "
+        f"Model trained on {history_days} days of co-failure history"
     )
-    st.divider()
 
-    for idx, (_, row) in enumerate(df.iterrows()):
-        _ttf_card(row.to_dict(), idx)
+    st.html(f"""
+<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;
+            padding:12px 16px;margin:8px 0 16px 0;">
+    <span style="font-size:12px;color:#92400E;">
+        <b>How to read this:</b> Each prediction names the currently-failing API that
+        historically drives the cascade. The percentage is the Laplace-smoothed
+        conditional probability — i.e. how often the predicted API failed when the
+        driver was failing, across the last {history_days} days. It is not a time-series
+        forecast. It uses the structure of past failures, not the current trend.
+    </span>
+</div>
+""")
+
+    # Show top 10, grouped by risk band
+    top = df.head(10)
+    for _, row in top.iterrows():
+        prob       = float(row["best_single_prob"])
+        color      = _risk_color(prob)
+        label      = _risk_label(prob)
+        name       = friendly_proxy(row["proxy"])
+        ec         = row["error_class"]
+        driver     = friendly_proxy(row["driver_proxy"])
+        driver_ec  = row["driver_ec"]
+        raw_pct    = float(row["driver_prob"]) * 100
+        count_ab   = int(row["driver_count_ab"])
+        count_a    = int(row["driver_count_a"])
+        lag        = int(row["best_lag"])
+        n_drivers  = int(row["n_drivers"])
+        ec_str     = "App Errors (4xx)" if ec == "client" else "Service Failures (5xx)"
+        drv_ec_str = "4xx" if driver_ec == "client" else "5xx"
+
+        multi_note = f" (+{n_drivers - 1} other active signals)" if n_drivers > 1 else ""
+        confidence = _confidence_note(count_a, count_ab, history_days)
+
+        st.html(f"""
+<div style="background:#FFFFFF;border-left:5px solid {color};border-radius:8px;
+            padding:16px 20px;margin-bottom:10px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.07);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+            <span style="font-size:15px;font-weight:700;color:#1E293B;">{name}</span>
+            <span style="font-size:12px;color:#94A3B8;margin-left:8px;">{ec_str}</span>
+        </div>
+        <div style="text-align:right;">
+            <span style="background:{color};color:#FFFFFF;padding:3px 10px;
+                         border-radius:12px;font-size:11px;font-weight:700;
+                         letter-spacing:0.06em;">{label}</span>
+            <span style="display:block;font-size:22px;font-weight:800;
+                         color:{color};margin-top:2px;">{prob*100:.0f}%</span>
+        </div>
+    </div>
+    <div style="font-size:13px;color:#374151;margin-bottom:6px;">
+        <b>Driven by:</b> {driver} ({drv_ec_str}) is currently failing{multi_note}
+    </div>
+    <div style="font-size:12px;color:#64748B;">
+        {confidence} — typically follows within <b>{lag} hour{'s' if lag != 1 else ''}</b>
+        &nbsp;·&nbsp; {raw_pct:.0f}% raw co-failure rate
+    </div>
+</div>
+""")
+
+    if len(df) > 10:
+        with st.expander(f"Show remaining {len(df) - 10} lower-confidence predictions"):
+            for _, row in df.iloc[10:].iterrows():
+                prob  = float(row["best_single_prob"])
+                name  = friendly_proxy(row["proxy"])
+                drv   = friendly_proxy(row["driver_proxy"])
+                n, t  = int(row["driver_count_ab"]), int(row["driver_count_a"])
+                st.markdown(
+                    f"- **{name}** [{row['error_class']}] — {prob*100:.0f}% "
+                    f"(driver: {drv}, {n}/{t} occurrences)"
+                )
+
+    st.divider()
+    st.caption(
+        f"Predictions use {history_days} days of observed anomaly co-occurrence data. "
+        f"Probabilities are Laplace-smoothed to account for limited history. "
+        f"Pairs require ≥5 driver observations and ≥3 co-failures to be included. "
+        f"This model captures structural API dependencies, not time-series trends."
+    )
