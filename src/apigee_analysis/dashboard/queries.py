@@ -1345,7 +1345,8 @@ def _get_corr_pairs(settings: Settings) -> pd.DataFrame:
     (e.g. first run before the analysis pipeline has written anything).
     """
     # Read pre-computed pairs — best_lag stored as a tag so no pivot needed.
-    # Simple last() per (key_a, key_b, best_lag) group — fast even at 6K pairs.
+    # Group by (key_a, key_b, best_lag) — if multiple seeds ran in the window,
+    # multiple lag variants can exist for the same pair; we deduplicate below.
     rows = []
     try:
         for table in _query_raw(settings, f'''
@@ -1368,7 +1369,12 @@ def _get_corr_pairs(settings: Settings) -> pd.DataFrame:
         pass
 
     if rows:
-        return pd.DataFrame(rows)
+        df = pd.DataFrame(rows)
+        # Deduplicate: keep the highest-correlation row per (key_a, key_b) pair.
+        # Multiple rows can exist when the same pair was seeded with different lags
+        # (e.g. two seed runs within the -2h window with different best_lag values).
+        df = df.loc[df.groupby(["key_a", "key_b"])["best_corr"].idxmax()].reset_index(drop=True)
+        return df
 
     # Fallback: compute on demand (first run only, before pipeline has run)
     from apigee_analysis.correlation import build_rate_matrix, compute_crosscorr_pairs
@@ -1609,8 +1615,10 @@ def get_correlation_matrix(settings: Settings, top_n: int = 30) -> tuple:
         corr_pairs["key_a"].isin(top_keys) & corr_pairs["key_b"].isin(top_keys)
     ]
 
-    # Pivot to square matrix
-    mat = filtered.pivot(index="key_a", columns="key_b", values="best_corr").fillna(0)
+    # Pivot to square matrix — use pivot_table (not pivot) to handle any
+    # residual duplicates gracefully by taking the max correlation per cell.
+    mat = filtered.pivot_table(index="key_a", columns="key_b",
+                               values="best_corr", aggfunc="max").fillna(0)
     # Ensure all top_keys appear in both axes
     mat = mat.reindex(index=top_keys, columns=top_keys, fill_value=0)
 
