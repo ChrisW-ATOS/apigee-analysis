@@ -401,7 +401,7 @@ def get_error_rate_predictions(settings: Settings) -> pd.DataFrame:
       |> filter(fn: (r) => r._measurement == "predicted_anomaly"
                         and r.measurement == "error_rate")
       |> filter(fn: (r) => r._field == "predicted_error_rate")
-      |> group(columns: ["apiproxy", "error_class"])
+      |> group(columns: ["apiproxy", "error_class", "hours_ahead"])
       |> last()
     '''
     rows = []
@@ -412,16 +412,22 @@ def get_error_rate_predictions(settings: Settings) -> pd.DataFrame:
                 ec    = rec.values.get("error_class", "")
                 t     = rec.get_time()
                 rate  = rec.get_value()
+                h     = rec.values.get("hours_ahead", "1")
                 if proxy and t and rate is not None:
                     rows.append({
                         "proxy":          proxy,
                         "error_class":    ec,
                         "detection_time": t,
+                        "hours_ahead":    int(h),
                         "predicted_rate": float(rate),
                     })
     except Exception:
         return pd.DataFrame()
-    return pd.DataFrame(rows) if rows else pd.DataFrame()
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["plot_time"] = pd.to_datetime(df["detection_time"]) + pd.to_timedelta(df["hours_ahead"], unit="h")
+    return df
 
 
 @st.cache_data(ttl=1800, show_spinner=False)

@@ -146,18 +146,8 @@ def _error_rate_chart(df: pd.DataFrame, pred_df: pd.DataFrame) -> None:
     total["error_rate"] = total["error_rate"].clip(0, 1)
     total = total.sort_values("time")
 
-    # Combine predicted client + server into predicted total per proxy
-    if has_preds:
-        pred_total = (
-            pred_df.groupby(["proxy", "detection_time"])["predicted_rate"]
-            .sum()
-            .clip(0, 1)
-            .reset_index()
-        )
-        pred_total["plot_time"] = pred_total["detection_time"] + timedelta(hours=2)
-        pred_map = pred_total.set_index("proxy")
-    else:
-        pred_map = None
+    # Index predictions by proxy for fast lookup in the per-proxy loop
+    pred_map = pred_df.set_index("proxy") if has_preds else None
 
     fig = go.Figure()
 
@@ -185,51 +175,49 @@ def _error_rate_chart(df: pd.DataFrame, pred_df: pd.DataFrame) -> None:
             ),
         ))
 
-        # Stored AR(1) prediction — plotted at detection_time + 2h
+        # Stored AR(1) predictions — one point per forecast step (t+1h … t+4h)
         if pred_map is not None and proxy in pred_map.index:
-            p_rows = pred_map.loc[[proxy]]
-            if isinstance(p_rows, pd.DataFrame):
-                p_row = p_rows.iloc[-1]  # most recent prediction
-            else:
-                p_row = p_rows
+            p_rows = pred_map.loc[[proxy]].sort_values("hours_ahead")
 
-            t_last    = grp["time"].iloc[-1]
-            pred_time = pd.Timestamp(p_row["plot_time"])
-            pred_rate = float(p_row["predicted_rate"]) * 100
-            anchor_r  = float(grp["error_rate"].iloc[-1]) * 100
+            # Combine client + server into total predicted rate per step
+            p_combined = (
+                p_rows.groupby(["detection_time", "hours_ahead", "plot_time"])["predicted_rate"]
+                .sum()
+                .clip(0, 1)
+                .reset_index()
+                .sort_values("hours_ahead")
+            )
 
-            hex_r = int(colour[1:3], 16)
-            hex_g = int(colour[3:5], 16)
-            hex_b = int(colour[5:7], 16)
+            if not p_combined.empty:
+                t_last   = grp["time"].iloc[-1]
+                anchor_r = float(grp["error_rate"].iloc[-1]) * 100
 
-            # Dotted connector from last actual point to prediction
-            fig.add_trace(go.Scatter(
-                x=[t_last, pred_time],
-                y=[anchor_r, pred_rate],
-                mode="lines",
-                line=dict(color=colour, width=1.5, dash="dot"),
-                showlegend=False,
-                hoverinfo="skip",
-            ))
+                forecast_x = [t_last] + list(p_combined["plot_time"])
+                forecast_y = [anchor_r] + [float(r) * 100 for r in p_combined["predicted_rate"]]
 
-            # Prediction diamond
-            fig.add_trace(go.Scatter(
-                x=[pred_time],
-                y=[pred_rate],
-                mode="markers",
-                marker=dict(
-                    color=f"rgba({hex_r},{hex_g},{hex_b},0.9)",
-                    size=12,
-                    symbol="diamond",
-                    line=dict(color="white", width=2),
-                ),
-                showlegend=False,
-                hovertemplate=(
-                    f"<b>{label} — AR(1) forecast</b><br>"
-                    "Predicted for: %{x}<br>"
-                    "Predicted rate: %{y:.1f}%<extra></extra>"
-                ),
-            ))
+                hex_r = int(colour[1:3], 16)
+                hex_g = int(colour[3:5], 16)
+                hex_b = int(colour[5:7], 16)
+
+                # Dotted forecast line through all steps
+                fig.add_trace(go.Scatter(
+                    x=forecast_x,
+                    y=forecast_y,
+                    mode="lines+markers",
+                    line=dict(color=colour, width=2, dash="dot"),
+                    marker=dict(
+                        color=f"rgba({hex_r},{hex_g},{hex_b},0.85)",
+                        size=[0] + [9] * len(p_combined),  # no marker at anchor
+                        symbol="diamond",
+                        line=dict(color="white", width=1.5),
+                    ),
+                    showlegend=False,
+                    hovertemplate=(
+                        f"<b>{label} — AR(1) forecast</b><br>"
+                        "Predicted for: %{x}<br>"
+                        "Predicted rate: %{y:.1f}%<extra></extra>"
+                    ),
+                ))
 
     fig.add_hline(
         y=10, line_dash="dash", line_color="#CBD5E1", line_width=1,

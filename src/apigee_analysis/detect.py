@@ -145,7 +145,7 @@ def _error_rate_points(df: pd.DataFrame, error_class: str,
         if len(rates) < 10:
             continue
 
-        zscore, forecast_z, predicted_rate = zscore_and_forecast(rates, forecast_hours=2)
+        zscore, forecast_zs, predicted_rates = zscore_and_forecast(rates, forecast_hours=4)
         is_anomaly = abs(zscore) >= Z_THRESHOLD
 
         prev_consec = (prev or {}).get(("error_rate_anomaly", proxy, error_class), 0)
@@ -165,21 +165,23 @@ def _error_rate_points(df: pd.DataFrame, error_class: str,
             .time(at, WritePrecision.S)
         )
 
-        # Store the predicted error rate so the dashboard can plot it directly
-        # from InfluxDB rather than recomputing a naive linear projection at
-        # render time. Written whenever the current or forecast rate is elevated.
-        if predicted_rate is not None and forecast_z is not None:
-            if is_anomaly or abs(forecast_z) >= Z_THRESHOLD:
-                points.append(
-                    Point("predicted_anomaly")
-                    .tag("apiproxy",    proxy)
-                    .tag("error_class", error_class)
-                    .tag("measurement", "error_rate")
-                    .field("forecast_z_score",      float(round(forecast_z, 4)))
-                    .field("predicted_error_rate",  float(np.clip(predicted_rate, 0, 1)))
-                    .field("hours_until_threshold", 2)
-                    .time(at, WritePrecision.S)
-                )
+        # Store one predicted_error_rate point per forecast step (t+1h … t+4h).
+        # hours_ahead tag lets the dashboard reconstruct the full forecast curve.
+        # Written whenever the current or any forecast step is anomalous.
+        if forecast_zs and predicted_rates:
+            any_elevated = is_anomaly or any(abs(fz) >= Z_THRESHOLD for fz in forecast_zs)
+            if any_elevated:
+                for h, (fz, pr) in enumerate(zip(forecast_zs, predicted_rates), 1):
+                    points.append(
+                        Point("predicted_anomaly")
+                        .tag("apiproxy",    proxy)
+                        .tag("error_class", error_class)
+                        .tag("measurement", "error_rate")
+                        .tag("hours_ahead", str(h))
+                        .field("forecast_z_score",     float(round(fz, 4)))
+                        .field("predicted_error_rate", float(np.clip(pr, 0, 1)))
+                        .time(at, WritePrecision.S)
+                    )
 
         if is_anomaly:
             log.warning("ANOMALY error_rate [%s] | proxy=%s z=%.2f rate=%.2f%% | sustained=%s hours=%d",
@@ -309,7 +311,7 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
             values = grp["_value"].astype(float)
             if len(values) < 10:
                 continue
-            zscore, forecast_z, _ = zscore_and_forecast(values)
+            zscore, forecast_zs, _ = zscore_and_forecast(values)
             is_anomaly = abs(zscore) >= Z_THRESHOLD
             prev_consec = prev.get(("traffic_anomaly", proxy, ""), 0)
             consec = (prev_consec + 1) if is_anomaly else 0
@@ -324,14 +326,14 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
                 .field("consecutive_hours", consec)
                 .time(at, WritePrecision.S)
             )
-            # Predictive alert — flag if forecast also crosses threshold
-            if forecast_z is not None and abs(forecast_z) >= Z_THRESHOLD and not is_anomaly:
+            # Traffic predictive alert — use final-step forecast for threshold check
+            if forecast_zs and abs(forecast_zs[-1]) >= Z_THRESHOLD and not is_anomaly:
                 points.append(
                     Point("predicted_anomaly")
-                    .tag("apiproxy", proxy)
+                    .tag("apiproxy",    proxy)
                     .tag("measurement", "traffic")
-                    .field("forecast_z_score", float(round(forecast_z, 4)))
-                    .field("hours_until_threshold", 2)
+                    .field("forecast_z_score",      float(round(forecast_zs[-1], 4)))
+                    .field("hours_until_threshold",  len(forecast_zs))
                     .time(at, WritePrecision.S)
                 )
 
