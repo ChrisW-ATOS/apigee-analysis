@@ -13,24 +13,45 @@ _HOURS_COLOR = {1: "#EF4444", 2: "#F59E0B", 3: "#D97706", 4: "#64748B"}
 _HOURS_LABEL = {1: "CRITICAL",  2: "HIGH",     3: "MEDIUM",   4: "LOW"}
 
 
+def _format_remaining(hours: float) -> str:
+    """Format hours remaining as human-readable string."""
+    total_min = int(hours * 60)
+    if total_min < 60:
+        return f"{total_min} min"
+    h, m = divmod(total_min, 60)
+    return f"{h}h {m}m" if m else f"{h}h"
+
+
 def _ttf_card(row: dict, idx: int) -> None:
     """Render a single time-to-failure card and an optional explanation below it."""
-    proxy    = row["proxy"]
-    ec       = row["error_class"]
-    h        = row["hours_until_breach"]
-    fz       = abs(row["forecast_z"])
-    rate_pct = row["predicted_rate_pct"]
-    conf     = row["confidence_pct"]
-    current  = row.get("is_currently_anomalous", False)
+    proxy       = row["proxy"]
+    ec          = row["error_class"]
+    hrs_left    = float(row["hours_remaining"])
+    fz          = float(row["forecast_z"])
+    rate_pct    = float(row["predicted_rate_pct"])
+    conf        = float(row["confidence_pct"])
+    failure_at  = row.get("failure_at")
+    current     = row.get("is_currently_anomalous", False)
 
     label    = friendly_proxy(proxy)
-    color    = _HOURS_COLOR.get(h, "#94A3B8")
-    urgency  = _HOURS_LABEL.get(h, "WATCH")
     ec_str   = "App Errors (4xx)" if ec == "client" else "Service Failures (5xx)" if ec == "server" else "Errors"
     status   = "⚠ Already failing" if current else "● Predicted"
+    time_str = _format_remaining(hrs_left)
 
-    # Fill bar: how close to breach (1h = nearly full, 4h = quarter)
-    bar_fill = max(10, 100 - (h - 1) * 22)
+    # Colour by urgency: <30min = critical red, <1h = amber, <2h = orange, else grey
+    if hrs_left < 0.5:
+        color, urgency = "#EF4444", "CRITICAL"
+    elif hrs_left < 1.0:
+        color, urgency = "#F59E0B", "HIGH"
+    elif hrs_left < 2.0:
+        color, urgency = "#D97706", "MEDIUM"
+    else:
+        color, urgency = "#64748B", "LOW"
+
+    failure_label = failure_at.strftime("%H:%M UTC") if failure_at is not None else "—"
+
+    # Bar fill: proportion of a 4-hour window consumed
+    bar_fill = max(5, int((1 - hrs_left / 4) * 100))
 
     st.html(f"""
 <div style="background:#FFFFFF;border:2px solid {color};border-radius:12px;
@@ -45,19 +66,17 @@ def _ttf_card(row: dict, idx: int) -> None:
                      font-size:11px;font-weight:700;letter-spacing:0.07em;">{urgency}</span>
     </div>
     <div style="display:flex;align-items:center;gap:24px;">
-        <div style="text-align:center;min-width:80px;">
+        <div style="text-align:center;min-width:110px;">
             <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;
-                        letter-spacing:0.07em;margin-bottom:2px;">Fails in</div>
-            <div style="font-size:48px;font-weight:900;color:{color};line-height:1;">{h}</div>
-            <div style="font-size:12px;color:{color};font-weight:600;">
-                {'hour' if h == 1 else 'hours'}
-            </div>
+                        letter-spacing:0.07em;margin-bottom:4px;">Threshold breach in</div>
+            <div style="font-size:40px;font-weight:900;color:{color};line-height:1;">{time_str}</div>
+            <div style="font-size:11px;color:#94A3B8;margin-top:4px;">at {failure_label}</div>
         </div>
         <div style="flex:1;">
             <div style="display:flex;justify-content:space-between;
                         font-size:11px;color:#64748B;margin-bottom:4px;">
-                <span>Now — {rate_pct:.1f}% error rate predicted</span>
-                <span>Alert threshold</span>
+                <span>Predicted error rate at breach: {rate_pct:.1f}%</span>
+                <span>Alert threshold →</span>
             </div>
             <div style="background:#F1F5F9;border-radius:6px;height:14px;position:relative;">
                 <div style="background:{color};height:14px;border-radius:6px;
@@ -68,7 +87,7 @@ def _ttf_card(row: dict, idx: int) -> None:
             <div style="display:flex;justify-content:space-between;
                         font-size:10px;color:#94A3B8;margin-top:4px;">
                 <span>{status}</span>
-                <span>Confidence: {conf:.0f}%</span>
+                <span>Signal strength: {fz:.1f}σ · Confidence: {conf:.0f}%</span>
             </div>
         </div>
     </div>

@@ -651,18 +651,26 @@ def get_availability_scorecard(settings: Settings, days: int = 30) -> pd.DataFra
 
 @st.cache_data(ttl=60, show_spinner=False)
 def get_time_to_failure(settings: Settings) -> pd.DataFrame:
-    """Proxies predicted to breach the anomaly threshold, ranked by urgency.
+    """Proxies predicted to breach the anomaly threshold, with real time-to-failure.
 
-    Queries the predicted_anomaly measurement for error_rate forecasts,
-    then finds the earliest hours_ahead where |forecast_z| >= 3.0 per proxy.
-    Returns one row per proxy with the time-to-breach and forecast context.
+    Key correctness points:
+    - Only positive forecast_z (error rate rising above baseline). Negative z means
+      the rate is BELOW the baseline — not a failure risk.
+    - hours_until_breach is computed as (detection_time + hours_ahead) - now,
+      not just hours_ahead. The model writes points at detection time; the
+      actual failure window is hours_ahead hours AFTER that timestamp.
+    - Only includes predictions still in the future (hours_remaining > 0).
+    - Takes the most recent detection run per proxy (last() per proxy+class+step).
+    - Filters out numerically degenerate forecasts (|z| > 100 = AR(1) overflow).
 
-    Columns: proxy, error_class, hours_until_breach, forecast_z, predicted_rate_pct,
-             confidence_pct, is_currently_anomalous
+    Returns columns: proxy, error_class, hours_remaining (float), failure_at (datetime),
+                     forecast_z, predicted_rate_pct, confidence_pct, is_currently_anomalous
     """
-    Z_THRESHOLD = 3.0
+    from datetime import datetime, timedelta, timezone as tz
 
-    # All predicted error-rate forecast points (latest per proxy/class/step)
+    Z_THRESHOLD = 3.0
+    now = datetime.now(tz.utc)
+
     rows = []
     try:
         for table in _query_raw(settings, f'''
@@ -678,14 +686,16 @@ def get_time_to_failure(settings: Settings) -> pd.DataFrame:
                    columnKey:["_field"], valueColumn:"_value")
         '''):
             for rec in table.records:
-                proxy = rec.values.get("apiproxy", "")
-                ec    = rec.values.get("error_class", "")
-                h     = int(rec.values.get("hours_ahead", 1))
-                fz    = float(rec.values.get("forecast_z_score") or 0)
-                pr    = float(rec.values.get("predicted_error_rate") or 0)
-                if proxy:
-                    rows.append({"proxy": proxy, "error_class": ec,
-                                 "hours_ahead": h, "forecast_z": fz, "predicted_rate": pr})
+                proxy       = rec.values.get("apiproxy", "")
+                ec          = rec.values.get("error_class", "")
+                h           = int(rec.values.get("hours_ahead", 1))
+                fz          = float(rec.values.get("forecast_z_score") or 0)
+                pr          = float(rec.values.get("predicted_error_rate") or 0)
+                detect_time = rec.get_time()
+                if proxy and detect_time:
+                    rows.append({"proxy": proxy, "error_class": ec, "hours_ahead": h,
+                                 "forecast_z": fz, "predicted_rate": pr,
+                                 "detect_time": detect_time})
     except Exception:
         return pd.DataFrame()
 
@@ -694,33 +704,47 @@ def get_time_to_failure(settings: Settings) -> pd.DataFrame:
 
     df = pd.DataFrame(rows)
 
-    # For each proxy+class find the earliest hour where threshold is breached
+    # Only positive z (error rate rising) — negative means rate below baseline = not a failure
+    df = df[df["forecast_z"] >= Z_THRESHOLD]
+    # Drop numerically degenerate (AR(1) overflow on sparse/degenerate series)
+    df = df[df["forecast_z"] < 100]
+
+    if df.empty:
+        return pd.DataFrame()
+
+    # Compute actual failure window and time remaining from NOW
+    df["failure_at"] = df.apply(
+        lambda r: r["detect_time"] + pd.Timedelta(hours=r["hours_ahead"]), axis=1
+    )
+    df["hours_remaining"] = df["failure_at"].apply(
+        lambda t: (t.to_pydatetime().replace(tzinfo=tz.utc) - now).total_seconds() / 3600
+    )
+
+    # Only keep predictions still in the future
+    df = df[df["hours_remaining"] > 0]
+    if df.empty:
+        return pd.DataFrame()
+
+    # For each proxy+class take the earliest upcoming breach
     results = []
     for (proxy, ec), grp in df.groupby(["proxy", "error_class"]):
-        grp = grp.sort_values("hours_ahead")
-        breach = grp[grp["forecast_z"].abs() >= Z_THRESHOLD]
-        if breach.empty:
-            continue
-        first = breach.iloc[0]
+        grp = grp.sort_values("hours_remaining")
+        best = grp.iloc[0]
         results.append({
-            "proxy":                proxy,
-            "error_class":          ec,
-            "hours_until_breach":   int(first["hours_ahead"]),
-            "forecast_z":           float(first["forecast_z"]),
-            "predicted_rate_pct":   float(first["predicted_rate"]) * 100,
-            # Confidence: how far above threshold the forecast is (0-100)
-            "confidence_pct":       min(100, (abs(float(first["forecast_z"])) - Z_THRESHOLD) / Z_THRESHOLD * 100),
+            "proxy":              proxy,
+            "error_class":        ec,
+            "hours_remaining":    float(best["hours_remaining"]),
+            "failure_at":         best["failure_at"],
+            "forecast_z":         float(best["forecast_z"]),
+            "predicted_rate_pct": float(best["predicted_rate"]) * 100,
+            "confidence_pct":     min(100.0, (float(best["forecast_z"]) - Z_THRESHOLD) / Z_THRESHOLD * 100),
         })
 
     if not results:
         return pd.DataFrame()
 
-    out = pd.DataFrame(results)
-    # Drop numerically degenerate predictions (AR(1) overflow on sparse series)
-    out = out[out["forecast_z"].abs() < 1000]
-    out = out.sort_values("hours_until_breach")
+    out = pd.DataFrame(results).sort_values("hours_remaining")
 
-    # Mark proxies that are already actively anomalous
     try:
         active = get_active_anomalies(settings)
         active_proxies = set(active["proxy"].unique()) if not active.empty else set()
