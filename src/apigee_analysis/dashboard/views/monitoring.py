@@ -100,25 +100,42 @@ def _reliability_scores(settings: Settings) -> None:
         st.info("No availability data.")
         return
 
-    # Incidents per country — extract OpCo from proxy name
+    # Incidents per country — match proxy names against known country name fragments.
+    # edgemicro proxies embed the full country name (e.g. "nigeria", "ghana", "rwanda").
+    _NAME_TO_CODE = {name.lower(): code for code, name in _COUNTRY_NAMES.items()}
+    # Also add common abbreviations found in proxy names
+    _EXTRA = {"za": "ZAF", "civ": "CIV", "ssd": "SSD", "cog": "COG", "gnb": "GNB"}
+
     incident_by_country: dict[str, int] = {}
     if not incident_df.empty:
         for _, row in incident_df.iterrows():
-            proxy = row.get("proxy", "")
-            for code, name in _COUNTRY_NAMES.items():
-                if code.lower() in proxy.lower():
-                    incident_by_country[code] = incident_by_country.get(code, 0) + int(row.get("incident_hours", 1))
+            proxy = row.get("proxy", "").lower()
+            matched = None
+            for fragment, code in _NAME_TO_CODE.items():
+                if fragment in proxy:
+                    matched = code
                     break
+            if not matched:
+                for frag, code in _EXTRA.items():
+                    if f"_{frag}_" in proxy:
+                        matched = code
+                        break
+            if matched:
+                incident_by_country[matched] = (
+                    incident_by_country.get(matched, 0) + int(row.get("incident_hours", 1))
+                )
 
     max_incidents = max(incident_by_country.values(), default=1)
     scores = []
 
     for _, row in avail_df.iterrows():
-        avail      = row["availability"]                      # fraction 0–1
-        avail_score = min(100, avail * 100)                   # direct mapping
+        # availability is already a percentage (0–100), NOT a fraction.
+        avail_pct   = float(row["availability"])
+        avail_score = min(100.0, avail_pct)                           # direct — no ×100
         inc_count   = incident_by_country.get(row["country"], 0)
-        inc_score   = max(0, 100 - (inc_count / max(max_incidents, 1)) * 100)
-        headroom    = max(0, (avail * 100 - SLA_TARGET) / (100 - SLA_TARGET) * 100)
+        inc_score   = max(0.0, 100 - (inc_count / max(max_incidents, 1)) * 100)
+        # headroom: how far above SLA are we? 100 = right at 100%, 0 = at or below SLA
+        headroom    = max(0.0, (avail_pct - SLA_TARGET) / (100 - SLA_TARGET) * 100)
 
         composite   = avail_score * 0.6 + inc_score * 0.2 + headroom * 0.2
         composite   = round(min(100, max(0, composite)), 1)
@@ -127,7 +144,7 @@ def _reliability_scores(settings: Settings) -> None:
             "country":   row["country"],
             "name":      row["name"],
             "score":     composite,
-            "avail_pct": row["availability"] * 100,
+            "avail_pct": avail_pct,   # already a percentage
             "incidents": inc_count,
         })
 
