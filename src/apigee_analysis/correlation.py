@@ -18,7 +18,7 @@ to produce a ranked list of APIs most at risk of following the same pattern.
 from __future__ import annotations
 
 import logging
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
@@ -225,3 +225,105 @@ def predict_cascade(
         .sort_values("score", ascending=False)
         .reset_index(drop=True)
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pipeline integration — compute and persist to InfluxDB
+# ─────────────────────────────────────────────────────────────────────────────
+
+def update_correlation_pairs(settings) -> None:
+    """Compute behavioral cross-correlation pairs and write them to InfluxDB.
+
+    Called from run_all() in detect.py so the result is available to the
+    dashboard without any compute on the dashboard side. The dashboard reads
+    the 'api_correlation' measurement (fast) instead of recomputing (slow).
+
+    Writes one Point per correlated pair to the Anomalies bucket:
+        measurement: api_correlation
+        tags: key_a, key_b
+        fields: best_corr (float), best_lag (int)
+    """
+    from .config import Settings
+    from influxdb_client import InfluxDBClient, Point, WritePrecision
+    from influxdb_client.client.write_api import SYNCHRONOUS
+
+    try:
+        # Query last 7 days of hourly error rates
+        from influxdb_client.client.warnings import MissingPivotFunction
+        import warnings
+        warnings.simplefilter("ignore", MissingPivotFunction)
+
+        with InfluxDBClient(url=settings.influx_url, token=settings.influx_token,
+                            org=settings.influx_org, timeout=60_000) as client:
+            flux = f'''
+            from(bucket: "{settings.anomaly_bucket.replace("Anomalies", settings.anomaly_bucket)}")
+              |> range(start: -7d)
+              |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+              |> filter(fn: (r) => r._field == "error_rate")
+              |> group(columns: ["apiproxy", "error_class"])
+              |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
+            '''
+            # Use source_bucket (Apigee Reports) for rates — consistent with get_rate_history
+            flux_source = f'''
+            from(bucket: "{settings.anomaly_bucket}")
+              |> range(start: -7d)
+              |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+              |> filter(fn: (r) => r._field == "error_rate")
+              |> group(columns: ["apiproxy", "error_class"])
+              |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
+            '''
+            result = client.query_api().query_data_frame(flux_source)
+
+        if result is None or (isinstance(result, list) and not result):
+            log.warning("update_correlation_pairs: no rate data returned")
+            return
+
+        if isinstance(result, list):
+            result = pd.concat(result, ignore_index=True)
+        if result.empty:
+            return
+
+        # Build rate matrix and compute pairs
+        rows = []
+        for _, row in result.iterrows():
+            proxy = row.get("apiproxy", "")
+            ec    = row.get("error_class", "")
+            ts    = pd.Timestamp(row["_time"]).floor("h")
+            rate  = float(row.get("_value") or 0)
+            if proxy and ec:
+                rows.append({"proxy": proxy, "error_class": ec, "hour": ts, "rate": rate})
+
+        if not rows:
+            return
+
+        history_df = pd.DataFrame(rows)
+        matrix     = build_rate_matrix(history_df)
+        pairs      = compute_crosscorr_pairs(matrix)
+
+        if pairs.empty:
+            log.info("update_correlation_pairs: no significant pairs found")
+            return
+
+        # Write pairs to InfluxDB
+        now    = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        points = []
+        for _, row in pairs.iterrows():
+            points.append(
+                Point("api_correlation")
+                .tag("key_a",    row["key_a"])
+                .tag("key_b",    row["key_b"])
+                .field("best_corr", float(row["best_corr"]))
+                .field("best_lag",  int(row["best_lag"]))
+                .time(now, WritePrecision.S)
+            )
+
+        with InfluxDBClient(url=settings.influx_url, token=settings.influx_token,
+                            org=settings.influx_org, timeout=60_000) as client:
+            client.write_api(write_options=SYNCHRONOUS).write(
+                bucket=settings.anomaly_bucket, record=points
+            )
+
+        log.info("correlation pairs written: %d pairs → Anomalies bucket", len(points))
+
+    except Exception as exc:
+        log.error("update_correlation_pairs failed: %s", exc)

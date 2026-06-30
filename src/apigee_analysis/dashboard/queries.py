@@ -1332,24 +1332,50 @@ def get_rate_history(settings: Settings, days: int = 14) -> pd.DataFrame:
     return pd.DataFrame(rows) if rows else pd.DataFrame()
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)
 def _get_corr_pairs(settings: Settings) -> pd.DataFrame:
-    """Shared cached computation: rate history → correlation pairs.
+    """Load pre-computed behavioral correlation pairs from InfluxDB.
 
-    The heavy work (InfluxDB query + O(N²) cross-correlation) runs ONCE and is
-    cached for 1 hour. Both get_cascade_predictions() and get_correlation_matrix()
-    call this function so they share the same cached result rather than each
-    rerunning the expensive computation.
+    The pairs are computed by the analysis pipeline (detect.py → run_all →
+    update_correlation_pairs) and written to the 'api_correlation' measurement
+    in the Anomalies bucket every hour. Reading ~500 rows from InfluxDB takes
+    <1 second — no on-demand O(N²) computation in the dashboard.
 
-    First call: ~10-15 seconds. Subsequent calls within the hour: instant.
+    Falls back to on-demand computation if no stored pairs exist yet
+    (e.g. first run before the analysis pipeline has written anything).
     """
-    from apigee_analysis.correlation import build_rate_matrix, compute_crosscorr_pairs
+    # Try to read pre-computed pairs from InfluxDB
+    rows = []
+    try:
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -2h)
+          |> filter(fn: (r) => r._measurement == "api_correlation")
+          |> filter(fn: (r) => r._field == "best_corr" or r._field == "best_lag")
+          |> group(columns: ["key_a", "key_b"])
+          |> last()
+          |> pivot(rowKey:["_time","key_a","key_b"], columnKey:["_field"], valueColumn:"_value")
+        '''):
+            for rec in table.records:
+                key_a = rec.values.get("key_a", "")
+                key_b = rec.values.get("key_b", "")
+                best_corr = float(rec.values.get("best_corr") or 0)
+                best_lag  = int(float(rec.values.get("best_lag") or 0))
+                if key_a and key_b and best_corr >= 0.35:
+                    rows.append({"key_a": key_a, "key_b": key_b,
+                                 "best_corr": best_corr, "best_lag": best_lag})
+    except Exception:
+        pass
 
-    rate_df = get_rate_history(settings, days=7)   # 7 days is sufficient for correlation
+    if rows:
+        return pd.DataFrame(rows)
+
+    # Fallback: compute on demand (first run only, before pipeline has run)
+    from apigee_analysis.correlation import build_rate_matrix, compute_crosscorr_pairs
+    rate_df = get_rate_history(settings, days=7)
     if rate_df.empty:
         return pd.DataFrame()
-    matrix = build_rate_matrix(rate_df)
-    return compute_crosscorr_pairs(matrix)
+    return compute_crosscorr_pairs(build_rate_matrix(rate_df))
 
 
 @st.cache_data(ttl=300, show_spinner=False)

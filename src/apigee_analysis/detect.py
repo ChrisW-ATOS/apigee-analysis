@@ -502,6 +502,13 @@ def run_all(settings: Settings, at: datetime | None = None) -> None:
     from .multivariate import run_multivariate
     run_multivariate(settings, at)
 
+    # Update behavioral correlation pairs (used by API Intelligence dashboard page)
+    try:
+        from .correlation import update_correlation_pairs
+        update_correlation_pairs(settings)
+    except Exception as exc:
+        log.error("correlation update failed: %s", exc)
+
     # Generate incident brief — controlled by INTELLIGENCE_ENABLED in .env
     if os.getenv("INTELLIGENCE_ENABLED", "false").lower() == "true":
         from .intelligence import run_intelligence
