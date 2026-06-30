@@ -106,123 +106,315 @@ _AUTO_RESOLVE_LABELS = {
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Auto-Resolve mock
+# Auto-Resolve — architecture flow + pseudo-code + mock dispatch
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _auto_resolve_tab(settings: Settings) -> None:
-    """Mock auto-resolve UI — shown when a routine fix is triggered."""
-    if "ar_proxy" not in st.session_state or not st.session_state.ar_proxy:
-        st.info("Select an **Auto-Resolve** action from the Current Incidents tab to continue.")
-        return
+_ARCH_FLOW = """
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         AI AGENT EXECUTION ARCHITECTURE                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
 
-    proxy    = st.session_state.ar_proxy
-    ar_type  = st.session_state.ar_type
-    ec       = st.session_state.ar_ec
-    name     = friendly_proxy(proxy)
-    label, color = _AUTO_RESOLVE_LABELS.get(ar_type, ("Resolve", "#64748B"))
+  ┌────────────────┐     ┌───────────────────┐     ┌──────────────────────────┐
+  │  Incident      │────▶│  Agent Planner     │────▶│  Execution Engine        │
+  │  Context       │     │  (Claude AI)       │     │                          │
+  │                │     │                   │     │  ① Identify              │
+  │  · Proxy ID    │     │  · Analyses error  │     │  ② Generate credentials  │
+  │  · Error class │     │    class & rate    │     │  ③ Stage update          │
+  │  · Blast radius│     │  · Selects runbook │     │  ④ Deploy (rolling)      │
+  │  · Duration    │     │  · Generates plan  │     │  ⑤ Validate              │
+  └────────────────┘     └───────────────────┘     └──────────┬───────────────┘
+                                                               │
+                         ┌─────────────────────────────────────▼───────────────┐
+                         │                  Integration Layer                   │
+                         │                                                      │
+                         │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐  │
+                         │  │  API Manager  │  │  Secrets     │  │  Monitor │  │
+                         │  │  (Apigee)     │  │  (Vault)     │  │  (Influx)│  │
+                         │  └──────────────┘  └──────────────┘  └──────────┘  │
+                         └──────────────────────────────────────────────────────┘
+                                               │
+                         ┌─────────────────────▼────────────────────────────────┐
+                         │              Outcome & Notification                   │
+                         │                                                       │
+                         │  · Error rate validated ← baseline                   │
+                         │  · Audit log written to InfluxDB                     │
+                         │  · Partner teams notified via webhook                │
+                         └───────────────────────────────────────────────────────┘
+"""
 
-    st.html(f"""
-<div style="background:#FFF7ED;border:2px solid #F59E0B;border-radius:10px;
-            padding:16px 20px;margin-bottom:20px;">
-    <div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;
-                letter-spacing:0.07em;margin-bottom:6px;">⚠ Production Action</div>
-    <div style="font-size:14px;color:#78350F;">
-        The following steps will affect live production services for
-        <b>{name}</b> [{ec} errors]. Review each step before dispatching.
-    </div>
-</div>
-""")
+_PSEUDOCODE = {
+    "credential_rotation": '''\
+async def agent_credential_rotation(incident: Incident) -> Resolution:
+    """
+    AI Agent: Automated Credential Rotation
+    Runbook: APIGEE-IR-001 · Triggered by: 4xx sustained > 70%
+    """
+    log.info(f"[Agent] Starting credential rotation for {incident.proxy}")
 
-    st.subheader(f"{label} — {name}")
-    st.caption(f"Resolution type: {ar_type.replace('_', ' ').title()}")
+    # ── Phase 1: Identify ────────────────────────────────────────────────
+    tokens = await apigee.list_credentials(proxy=incident.proxy)
+    suspect = [t for t in tokens if t.issued_at < incident.onset_time]
 
-    if ar_type == "credential_rotation":
-        st.markdown("""
-**Automated resolution plan — Credential Rotation**
+    if not suspect:
+        raise AgentError("No suspect credentials found — manual review required")
 
-1. **Identify affected credentials**
-   - Query the API management system for all active tokens associated with this proxy
-   - Flag tokens older than the error onset time as suspect
+    log.info(f"[Agent] Found {len(suspect)} suspect credential(s)")
 
-2. **Generate replacement credentials**
-   - Issue new API key / OAuth client secret via the API management portal
-   - Assign the same permissions scope as the current credential set
-
-3. **Stage the credential update**
-   - Store new credentials in the secrets manager
-   - Update environment variable bindings for the affected service
-
-4. **Deploy the update**
-   - Trigger a rolling restart of the affected proxy service
-   - New credentials take effect without downtime
-
-5. **Verify resolution**
-   - Monitor error rate for 10 minutes post-deploy
-   - Confirm 4xx errors return to baseline (<2%)
-   - Notify affected partner teams of the credential update
-""")
-
-    elif ar_type == "config_review":
-        st.markdown("""
-**Automated resolution plan — Configuration Review**
-
-1. **Retrieve current configuration**
-   - Pull the active rate limit, timeout, and endpoint configuration for this proxy
-   - Compare against the last-known-good configuration snapshot
-
-2. **Identify configuration drift**
-   - Check for rate limit reductions in the last 24 hours
-   - Verify API contract version compatibility with calling applications
-
-3. **Apply corrected configuration**
-   - Revert any rate limit changes applied in the anomaly window
-   - Update endpoint configuration to match the validated specification
-
-4. **Notify downstream teams**
-   - Inform partner development teams of any contract changes
-   - Provide migration guide if API version has changed
-
-5. **Verify resolution**
-   - Monitor for 15 minutes — 4xx rate should return to baseline
-   - Run synthetic validation request to confirm endpoint behaviour
-""")
-
-    st.divider()
-    st.subheader("Dispatch AI Agent")
-    st.caption(
-        "The AI agent will execute the steps above, monitor the outcome, "
-        "and report back. This is a mock integration — in production this would "
-        "connect to your infrastructure automation layer."
+    # ── Phase 2: Generate replacement ───────────────────────────────────
+    new_creds = await apigee.rotate_credentials(
+        tokens     = suspect,
+        scope      = suspect[0].scope,
+        expiry_ttl = timedelta(days=90),
     )
 
-    c1, c2, c3 = st.columns([2, 1, 2])
-    with c2:
-        dispatch = st.button("🤖  Dispatch Agent", use_container_width=True, type="primary")
+    # ── Phase 3: Stage ───────────────────────────────────────────────────
+    await vault.write_secret(
+        path  = f"apigee/{incident.proxy}/credentials",
+        value = new_creds.to_dict(),
+    )
 
-    if dispatch or st.session_state.get("ar_dispatched"):
-        st.session_state["ar_dispatched"] = True
-        st.html("""
-<div style="background:#F0FDF4;border:2px solid #22C55E;border-radius:10px;
-            padding:20px 24px;margin-top:16px;">
-    <div style="font-size:14px;font-weight:700;color:#166534;margin-bottom:8px;">
-        ✓ Agent Dispatched
-    </div>
-    <div style="font-size:13px;color:#166534;line-height:1.6;">
-        The AI agent has been dispatched and is executing the resolution plan.<br>
-        Execution ID: <code>agent-ir-{proxy[-8:]}-mock</code><br>
-        Estimated completion: 3–5 minutes<br>
-        You will be notified when the error rate returns to baseline.
-    </div>
-</div>
-""")
-        st.caption("⚠ Mock only — no actual changes have been made to production systems.")
+    # ── Phase 4: Deploy (rolling restart, no downtime) ───────────────────
+    deploy = await apigee.rolling_restart(
+        proxy        = incident.proxy,
+        health_check = "/health",
+        max_surge    = 1,
+    )
+    await deploy.wait_until_healthy(timeout=300)
 
-    if st.button("← Back to incidents", key="ar_back"):
+    # ── Phase 5: Validate ────────────────────────────────────────────────
+    await asyncio.sleep(60)   # allow metrics to propagate
+    rate = await influx.query_error_rate(proxy=incident.proxy, window="5m")
+
+    if rate > 0.05:
+        await apigee.rollback(deploy)
+        raise AgentError(f"Post-deploy error rate {rate:.0%} — rolled back")
+
+    # ── Notify ───────────────────────────────────────────────────────────
+    await notify.send(
+        channel  = "ops-incidents",
+        message  = f"✅ Credential rotation complete for {incident.proxy}. "
+                   f"Error rate: {rate:.1%} (was {incident.error_rate:.0%})",
+    )
+
+    return Resolution(
+        status        = "resolved",
+        action        = "credential_rotation",
+        duration_secs = deploy.elapsed,
+        new_error_rate = rate,
+    )
+''',
+    "config_review": '''\
+async def agent_config_review(incident: Incident) -> Resolution:
+    """
+    AI Agent: Configuration Review & Revert
+    Runbook: APIGEE-IR-002 · Triggered by: 4xx sustained > 30%
+    """
+    log.info(f"[Agent] Starting config review for {incident.proxy}")
+
+    # ── Phase 1: Retrieve current vs last-known-good ─────────────────────
+    current_cfg = await apigee.get_proxy_config(incident.proxy)
+    lkg_cfg     = await config_store.get_last_known_good(incident.proxy)
+    diff        = DeepDiff(lkg_cfg, current_cfg, ignore_order=True)
+
+    if not diff:
+        log.warning("[Agent] No config drift detected — escalating to human")
+        await pagerduty.escalate(incident, reason="no_config_drift")
+        return Resolution(status="escalated")
+
+    log.info(f"[Agent] Config drift detected: {list(diff.keys())}")
+
+    # ── Phase 2: Classify drift ──────────────────────────────────────────
+    risky_keys = {"rate_limit", "timeout_ms", "auth_policy", "target_url"}
+    changed    = {k for k in diff if any(r in k for r in risky_keys)}
+
+    # ── Phase 3: Revert ──────────────────────────────────────────────────
+    reverted = await apigee.apply_config(
+        proxy  = incident.proxy,
+        config = lkg_cfg,
+        reason = f"Auto-revert: config drift in {changed}",
+    )
+    await reverted.wait_for_propagation(timeout=120)
+
+    # ── Phase 4: Validate ────────────────────────────────────────────────
+    await asyncio.sleep(60)
+    rate = await influx.query_error_rate(proxy=incident.proxy, window="5m")
+
+    if rate > 0.05:
+        await pagerduty.escalate(incident, reason="revert_did_not_resolve")
+        raise AgentError("Config revert did not resolve errors — manual intervention needed")
+
+    # ── Phase 5: Notify partners of any breaking changes ─────────────────
+    if "auth_policy" in changed or "target_url" in changed:
+        affected_apps = await influx.get_blast_radius(incident.proxy)
+        await notify.send_to_teams(
+            apps    = affected_apps,
+            message = f"API contract change reverted for {incident.proxy}. "
+                      f"Please verify your integration.",
+        )
+
+    return Resolution(
+        status         = "resolved",
+        action         = "config_revert",
+        reverted_keys  = list(changed),
+        new_error_rate = rate,
+    )
+''',
+}
+
+
+def _auto_resolve_page(settings: Settings) -> None:
+    """Full-page auto-resolve view — shown immediately when triggered."""
+    proxy   = st.session_state.ar_proxy
+    ar_type = st.session_state.ar_type
+    ec      = st.session_state.ar_ec
+    name    = friendly_proxy(proxy)
+    label, color = _AUTO_RESOLVE_LABELS.get(ar_type, ("Resolve", "#64748B"))
+    runbook = {"credential_rotation": "APIGEE-IR-001", "config_review": "APIGEE-IR-002"}.get(ar_type, "APIGEE-IR-000")
+
+    # Back button at top
+    if st.button("← Back to Incident Response", key="ar_back_top"):
         st.session_state.ar_proxy      = None
         st.session_state.ar_type       = None
         st.session_state.ar_ec         = None
         st.session_state.ar_dispatched = False
         st.rerun()
+
+    # Warning banner
+    st.html(f"""
+<div style="background:#FFF7ED;border:2px solid #F59E0B;border-radius:10px;
+            padding:16px 20px;margin:12px 0 20px 0;">
+    <div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;
+                letter-spacing:0.07em;margin-bottom:6px;">⚠ Production Action · Runbook {runbook}</div>
+    <div style="font-size:14px;color:#78350F;">
+        The following agent will execute changes against live production services for
+        <b>{name}</b> [{ec} errors]. All steps are logged and reversible.
+    </div>
+</div>
+""")
+
+    # Header
+    col_h, col_b = st.columns([4, 1])
+    with col_h:
+        st.subheader(f"{label}")
+        st.caption(f"Target: {name}  ·  Class: {ec} errors  ·  Runbook: {runbook}")
+    with col_b:
+        st.html(f"""
+<div style="background:{color};color:#FFFFFF;border-radius:8px;
+            padding:12px 16px;text-align:center;margin-top:8px;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;">
+        Resolution
+    </div>
+    <div style="font-size:14px;font-weight:800;margin-top:2px;">
+        {ar_type.replace('_',' ').title()}
+    </div>
+</div>
+""")
+
+    st.divider()
+    tab_arch, tab_code, tab_dispatch = st.tabs([
+        "🏗  Architecture", "📄  Agent Code", "🚀  Dispatch"
+    ])
+
+    # ── Architecture tab ──────────────────────────────────────────────────────
+    with tab_arch:
+        st.code(_ARCH_FLOW, language=None)
+        st.divider()
+        st.markdown("**Execution phases:**")
+        phases = {
+            "credential_rotation": [
+                ("① Identify",  "Query API management for active credentials on the affected proxy. Flag tokens predating the incident onset time."),
+                ("② Generate",  "Issue new credentials with identical scope via the Apigee management API. Old credentials remain active until step ④."),
+                ("③ Stage",     "Write new credentials to the secrets vault under the proxy's path. No services updated yet."),
+                ("④ Deploy",    "Trigger a rolling restart of the proxy. Instances pick up new credentials from vault sequentially — zero downtime."),
+                ("⑤ Validate",  "Wait 60 seconds, query InfluxDB for 5-minute rolling error rate. Rollback if rate > 5%. Notify on success."),
+            ],
+            "config_review": [
+                ("① Identify",  "Pull current proxy configuration and last-known-good snapshot from the config store. Deep-diff to find drift."),
+                ("② Classify",  "Categorise changed keys — rate limits, timeouts, auth policies, target URLs. Only risky changes trigger revert."),
+                ("③ Revert",    "Apply the last-known-good config via Apigee Management API. Wait for propagation across all gateway nodes."),
+                ("④ Validate",  "Query error rate after 60 seconds. Escalate to PagerDuty if revert did not resolve."),
+                ("⑤ Notify",    "If auth or URL changes were reverted, notify affected partner apps via webhook with migration guidance."),
+            ],
+        }
+        for step, desc in phases.get(ar_type, []):
+            with st.expander(step, expanded=True):
+                st.markdown(desc)
+
+    # ── Code tab ──────────────────────────────────────────────────────────────
+    with tab_code:
+        st.caption(
+            "Pseudo-code representing the agent's execution plan. "
+            "In production this would be compiled into an actual agent runbook "
+            "and executed against the live infrastructure APIs."
+        )
+        code = _PSEUDOCODE.get(ar_type, "# No agent code available for this resolution type")
+        st.code(code, language="python")
+
+    # ── Dispatch tab ──────────────────────────────────────────────────────────
+    with tab_dispatch:
+        if not st.session_state.get("ar_dispatched"):
+            st.markdown(f"""
+**Pre-dispatch checklist:**
+
+- [ ] Verified this is the correct proxy: **{name}**
+- [ ] Confirmed error class: **{ec} errors ({ar_type.replace('_', ' ').title()})**
+- [ ] Reviewed the architecture flow and agent code above
+- [ ] Change window is open / on-call engineer is available
+- [ ] Rollback plan understood (agent auto-rolls back on validation failure)
+""")
+            st.divider()
+            col_1, col_2, col_3 = st.columns([1, 2, 1])
+            with col_2:
+                if st.button(
+                    "🤖  Dispatch AI Agent",
+                    use_container_width=True,
+                    type="primary",
+                    key="dispatch_btn",
+                ):
+                    st.session_state["ar_dispatched"] = True
+                    st.rerun()
+        else:
+            # Mock execution output
+            import time
+            exec_id = f"agent-ir-{abs(hash(proxy)) % 100000:05d}"
+            st.html(f"""
+<div style="background:#F0FDF4;border:2px solid #22C55E;border-radius:10px;
+            padding:20px 24px;margin-bottom:16px;">
+    <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:10px;">
+        ✓ Agent Dispatched — Execution in Progress
+    </div>
+    <div style="font-family:monospace;font-size:12px;color:#166534;line-height:1.9;">
+        Execution ID: <b>{exec_id}</b><br>
+        Agent:        <b>claude-opus-4-8 [tool_use mode]</b><br>
+        Target:       <b>{name}</b><br>
+        Runbook:      <b>{runbook} — {ar_type.replace('_',' ').title()}</b><br>
+        Status:       <b>RUNNING · Phase 2/5</b><br>
+        ETA:          <b>~3 minutes</b>
+    </div>
+</div>
+""")
+            st.code(f"""\
+[{exec_id}] Agent started · runbook={runbook}
+[{exec_id}] Phase 1/5: Identifying affected credentials...
+[{exec_id}] Found 2 suspect credential(s) (issued before incident onset)
+[{exec_id}] Phase 2/5: Generating replacement credentials...
+[{exec_id}] New credentials staged in vault at apigee/{proxy[-20:]}/credentials
+[{exec_id}] Phase 3/5: Staging deployment...
+[{exec_id}] Rolling restart initiated (max_surge=1, health_check=/health)
+[{exec_id}] ► Waiting for instance health checks...
+""", language="bash")
+            st.info(
+                "**Mock execution** — this output simulates what the agent would report. "
+                "No actual changes have been made to production systems. "
+                "Integration with your infrastructure automation layer is required "
+                "before live dispatch is enabled."
+            )
+            if st.button("← Back to incidents", key="ar_back_dispatched"):
+                st.session_state.ar_proxy      = None
+                st.session_state.ar_type       = None
+                st.session_state.ar_ec         = None
+                st.session_state.ar_dispatched = False
+                st.rerun()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -323,9 +515,7 @@ def _current_incidents_tab(settings: Settings) -> None:
                         st.session_state.ar_type       = ar_type
                         st.session_state.ar_ec         = ec
                         st.session_state.ar_dispatched = False
-                        # Switch to auto-resolve tab by setting flag
-                        st.session_state.ir_tab = 2
-                        st.rerun()
+                        st.rerun()   # immediately shows auto-resolve page
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -422,9 +612,14 @@ def _predicted_tab(settings: Settings) -> None:
 def render(settings: Settings) -> None:
     # Initialise session state
     for k, v in [("ar_proxy", None), ("ar_type", None),
-                 ("ar_ec", None), ("ar_dispatched", False), ("ir_tab", 0)]:
+                 ("ar_ec", None), ("ar_dispatched", False)]:
         if k not in st.session_state:
             st.session_state[k] = v
+
+    # If auto-resolve was triggered, take over the whole page
+    if st.session_state.ar_proxy:
+        _auto_resolve_page(settings)
+        return
 
     st.header("Incident Response")
     st.caption(
@@ -432,13 +627,9 @@ def render(settings: Settings) -> None:
         "Auto-resolve routine issues"
     )
 
-    # If auto-resolve was triggered, open that tab
-    default_tab = st.session_state.get("ir_tab", 0)
-
     tabs = st.tabs([
         "🚨  Current Incidents",
         "⚡  Predicted Issues",
-        "🤖  Auto-Resolve",
     ])
 
     with tabs[0]:
@@ -446,6 +637,3 @@ def render(settings: Settings) -> None:
 
     with tabs[1]:
         _predicted_tab(settings)
-
-    with tabs[2]:
-        _auto_resolve_tab(settings)
