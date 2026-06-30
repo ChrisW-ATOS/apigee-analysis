@@ -1187,33 +1187,36 @@ def get_co_failure_history(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_anomaly_history(settings: Settings) -> pd.DataFrame:
-    """All anomalous hours per proxy+error_class over available history.
+def get_rate_history(settings: Settings, days: int = 14) -> pd.DataFrame:
+    """Hourly error rates for all proxies — the raw behavioral time series.
 
-    Returns columns: proxy, error_class, hour (UTC timestamp), is_anomalous.
-    Cached for 1 hour — history doesn't change fast, and building it is expensive.
+    Used to build the cross-correlation model. Returns actual error RATES,
+    not binary anomaly flags, so the correlation captures rises and falls
+    rather than coincident threshold breaches.
+
+    Returns columns: proxy, error_class, hour, rate.
     """
     rows = []
     try:
         for table in _query_raw(settings, f'''
         from(bucket: "{settings.anomaly_bucket}")
-          |> range(start: -60d)
+          |> range(start: -{days}d)
           |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
-          |> filter(fn: (r) => r._field == "z_score")
-          |> group(columns: ["apiproxy", "error_class", "is_anomaly"])
+          |> filter(fn: (r) => r._field == "error_rate")
+          |> group(columns: ["apiproxy", "error_class"])
           |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
         '''):
             for rec in table.records:
-                proxy      = rec.values.get("apiproxy", "")
-                ec         = rec.values.get("error_class", "")
-                is_anom    = rec.values.get("is_anomaly", "false") == "true"
-                ts         = rec.get_time()
-                if proxy and ec:
+                proxy = rec.values.get("apiproxy", "")
+                ec    = rec.values.get("error_class", "")
+                ts    = rec.get_time()
+                rate  = rec.get_value()
+                if proxy and ec and rate is not None:
                     rows.append({
                         "proxy":       proxy,
                         "error_class": ec,
                         "hour":        pd.Timestamp(ts).floor("h"),
-                        "is_anomalous": is_anom,
+                        "rate":        float(rate),
                     })
     except Exception:
         return pd.DataFrame()
@@ -1222,70 +1225,85 @@ def get_anomaly_history(settings: Settings) -> pd.DataFrame:
 
 @st.cache_data(ttl=300, show_spinner=False)
 def get_cascade_predictions(settings: Settings) -> pd.DataFrame:
-    """Predict which non-failing APIs are at elevated risk based on co-failure history.
+    """Predict at-risk APIs using behavioral cross-correlation on error rate changes.
 
-    Builds a conditional probability model from anomaly history, applies it to
-    the current platform state, and returns a ranked list of at-risk proxies.
+    Model:
+    1. Build hourly error rate time series for all proxies (rate history).
+    2. Compute cross-correlation on first differences at lags 0-4h for all pairs.
+       This captures behavioral similarity — correlated rises AND falls — not just
+       coincident threshold breaches.
+    3. For each currently-anomalous API, measure its recent rate-of-change.
+    4. Score non-anomalous APIs by: |rate_change_of_driver| × correlation(driver, B).
 
-    Returns columns: proxy, error_class, combined_prob, driver_proxy,
-                     driver_ec, driver_prob, driver_count_a, driver_count_ab,
-                     best_lag, n_drivers, history_days
+    Returns columns: proxy, error_class, score, correlation, driver_proxy,
+                     driver_ec, driver_lag, driver_change_pct, n_drivers,
+                     history_days.
     """
     from apigee_analysis.correlation import (
-        build_anomaly_events,
-        compute_conditional_probs,
+        build_rate_matrix,
+        compute_crosscorr_pairs,
         predict_cascade,
     )
 
-    # Load history and current state
-    history_df = get_anomaly_history(settings)
-    active_df  = get_active_anomalies(settings)
+    rate_df   = get_rate_history(settings, days=14)
+    active_df = get_active_anomalies(settings)
 
-    if history_df.empty:
+    if rate_df.empty:
         return pd.DataFrame()
 
     history_days = (
-        (pd.Timestamp.now(tz="UTC") - history_df["hour"].min().tz_localize("UTC")
-         if history_df["hour"].min().tzinfo is None
-         else pd.Timestamp.now(tz="UTC") - history_df["hour"].min())
+        (pd.Timestamp.now(tz="UTC") - rate_df["hour"].min().tz_localize("UTC")
+         if rate_df["hour"].min().tzinfo is None
+         else pd.Timestamp.now(tz="UTC") - rate_df["hour"].min())
         .days
     )
 
-    # Build co-failure model
-    events     = build_anomaly_events(history_df)
-    cond_probs = compute_conditional_probs(events)
+    # Build behavioral correlation model
+    matrix     = build_rate_matrix(rate_df)
+    corr_pairs = compute_crosscorr_pairs(matrix)
 
-    if cond_probs.empty:
+    if corr_pairs.empty:
         return pd.DataFrame()
 
-    # Current anomalous proxy keys
+    # Current anomalous keys
     current_anomalous: set[str] = set()
     if not active_df.empty:
         for _, row in active_df.iterrows():
             current_anomalous.add(f"{row['proxy']}|{row['error_class']}")
 
-    all_keys = set(events.keys())
+    # Recent rate-of-change for each currently-anomalous API (last 2 hours)
+    current_changes: dict[str, float] = {}
+    recent_hours = matrix.index[-3:] if len(matrix) >= 3 else matrix.index
+    if len(recent_hours) >= 2:
+        for key in current_anomalous:
+            if key in matrix.columns:
+                series     = matrix.loc[recent_hours, key].values.astype(float)
+                rate_change = float(series[-1] - series[0])   # change over last 2h
+                current_changes[key] = rate_change
 
-    predictions = predict_cascade(cond_probs, current_anomalous, all_keys)
+    all_keys = set(matrix.columns.tolist())
+
+    predictions = predict_cascade(corr_pairs, current_changes, current_anomalous, all_keys)
     if predictions.empty:
         return pd.DataFrame()
 
-    # Decode keys back to proxy + error_class
     def split_key(key: str) -> tuple[str, str]:
         parts = key.rsplit("|", 1)
         return (parts[0], parts[1]) if len(parts) == 2 else (key, "")
 
-    predictions[["proxy", "error_class"]]         = predictions["key_b"].apply(
+    predictions[["proxy", "error_class"]]       = predictions["key_b"].apply(
         lambda k: pd.Series(split_key(k))
     )
-    predictions[["driver_proxy", "driver_ec"]]    = predictions["best_driver_key"].apply(
+    predictions[["driver_proxy", "driver_ec"]]  = predictions["best_driver_key"].apply(
         lambda k: pd.Series(split_key(k))
     )
-    predictions["history_days"] = history_days
+    predictions["history_days"]        = history_days
+    predictions["driver_change_pct"]   = predictions["best_driver_change"] * 100
+    predictions["correlation"]         = predictions["best_driver_corr"]
+    predictions["driver_lag"]          = predictions["best_driver_lag"]
 
     return predictions[[
-        "proxy", "error_class", "best_single_prob", "combined_prob",
-        "driver_proxy", "driver_ec",
-        "driver_prob", "driver_count_a", "driver_count_ab",
-        "best_lag", "n_drivers", "history_days",
+        "proxy", "error_class", "score", "correlation",
+        "driver_proxy", "driver_ec", "driver_lag", "driver_change_pct",
+        "n_drivers", "history_days",
     ]].reset_index(drop=True)
