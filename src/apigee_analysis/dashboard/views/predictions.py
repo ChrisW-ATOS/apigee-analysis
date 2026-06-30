@@ -1,11 +1,126 @@
 """Failure Predictions — co-failure cascade risk based on historical patterns."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
+import plotly.graph_objects as go
 import streamlit as st
+from plotly.subplots import make_subplots
 
 from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
 from apigee_analysis.dashboard.labels import friendly_proxy
+
+
+def _co_failure_chart(
+    settings: Settings,
+    proxy_a: str, ec_a: str,
+    proxy_b: str, ec_b: str,
+    driver_name: str,
+    risk_name: str,
+) -> None:
+    """Dual-panel chart: driver API (top) and at-risk API (bottom), shared time axis.
+
+    Red fills when the driver is anomalous; amber when the at-risk API is anomalous.
+    The temporal co-occurrence pattern is immediately visible.
+    """
+    df = queries.get_co_failure_history(settings, proxy_a, ec_a, proxy_b, ec_b, days=7)
+    if df.empty:
+        st.caption("No history data available for this pair.")
+        return
+
+    now = datetime.now(timezone.utc)
+
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.08,
+        subplot_titles=[
+            f"Driver (currently failing): {driver_name[:50]} [{ec_a}]",
+            f"At risk: {risk_name[:50]} [{ec_b}]",
+        ],
+    )
+
+    # ── Top panel: driver proxy ───────────────────────────────────────────────
+    fig.add_trace(go.Scatter(
+        x=df["hour"], y=df["a_rate"] * 100,
+        mode="lines",
+        line=dict(color="#EF4444", width=1.5),
+        fill="tozeroy",
+        fillcolor="rgba(239,68,68,0.08)",
+        name=driver_name[:30],
+        hovertemplate="Driver<br>%{x}<br>Error rate: %{y:.1f}%<extra></extra>",
+    ), row=1, col=1)
+
+    # Anomaly markers on driver
+    anom_a = df[df["a_anomalous"]]
+    if not anom_a.empty:
+        fig.add_trace(go.Scatter(
+            x=anom_a["hour"], y=anom_a["a_rate"] * 100,
+            mode="markers",
+            marker=dict(color="#EF4444", size=8, symbol="circle",
+                        line=dict(color="white", width=1.5)),
+            showlegend=False,
+            hovertemplate="⚠ Anomalous<br>%{x}<br>%{y:.1f}%<extra></extra>",
+        ), row=1, col=1)
+
+    # ── Bottom panel: at-risk proxy ───────────────────────────────────────────
+    fig.add_trace(go.Scatter(
+        x=df["hour"], y=df["b_rate"] * 100,
+        mode="lines",
+        line=dict(color="#F59E0B", width=1.5),
+        fill="tozeroy",
+        fillcolor="rgba(245,158,11,0.08)",
+        name=risk_name[:30],
+        hovertemplate="At risk<br>%{x}<br>Error rate: %{y:.1f}%<extra></extra>",
+    ), row=2, col=1)
+
+    anom_b = df[df["b_anomalous"]]
+    if not anom_b.empty:
+        fig.add_trace(go.Scatter(
+            x=anom_b["hour"], y=anom_b["b_rate"] * 100,
+            mode="markers",
+            marker=dict(color="#F59E0B", size=8, symbol="circle",
+                        line=dict(color="white", width=1.5)),
+            showlegend=False,
+            hovertemplate="⚠ Anomalous<br>%{x}<br>%{y:.1f}%<extra></extra>",
+        ), row=2, col=1)
+
+    # "Now" line
+    fig.add_vline(
+        x=str(now), line_dash="dot", line_color="#94A3B8", line_width=1,
+        annotation_text="Now", annotation_font_size=10,
+        annotation_position="top left",
+    )
+
+    fig.update_layout(
+        height=360,
+        showlegend=False,
+        hovermode="x unified",
+        plot_bgcolor="#FAFAFA",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0, r=0, t=40, b=0),
+    )
+    fig.update_yaxes(ticksuffix="%", gridcolor="#E2E8F0", range=[0, 105])
+    fig.update_xaxes(gridcolor="#E2E8F0", row=2, col=1)
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Annotate co-failure occurrences visible in the chart
+    if not anom_a.empty and not anom_b.empty:
+        from datetime import timedelta
+        co_count = 0
+        for ta in anom_a["hour"]:
+            for lag in range(1, 5):
+                if (ta + timedelta(hours=lag)) in set(anom_b["hour"]):
+                    co_count += 1
+                    break
+        if co_count:
+            st.caption(
+                f"↑ {co_count} co-failure instance{'s' if co_count != 1 else ''} "
+                f"visible in this 7-day window — driver anomaly followed by at-risk "
+                f"anomaly within 4 hours."
+            )
 
 
 def _risk_color(prob: float) -> str:
@@ -117,6 +232,15 @@ def render(settings: Settings) -> None:
     </div>
 </div>
 """)
+
+        with st.expander(f"View 7-day failure history — {name} vs {driver}", expanded=False):
+            _co_failure_chart(
+                settings,
+                proxy_a=row["driver_proxy"], ec_a=row["driver_ec"],
+                proxy_b=row["proxy"],        ec_b=row["error_class"],
+                driver_name=driver,
+                risk_name=name,
+            )
 
     if len(df) > 10:
         with st.expander(f"Show remaining {len(df) - 10} lower-confidence predictions"):

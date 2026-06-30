@@ -1130,6 +1130,58 @@ def get_proxy_list(settings: Settings) -> list[str]:
     return sorted(proxies)
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def get_co_failure_history(
+    settings: Settings,
+    proxy_a: str, ec_a: str,
+    proxy_b: str, ec_b: str,
+    days: int = 7,
+) -> pd.DataFrame:
+    """Hourly error rate + anomaly flag for two proxies over `days` days.
+
+    Returns columns: hour, a_rate, a_anomalous, b_rate, b_anomalous.
+    Used to plot the co-failure pattern that drives a cascade prediction.
+    """
+    rows: dict = {}   # hour -> {a_rate, a_anom, b_rate, b_anom}
+
+    flux = f'''
+    from(bucket: "{settings.anomaly_bucket}")
+      |> range(start: -{days}d)
+      |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+      |> filter(fn: (r) => r._field == "error_rate")
+      |> filter(fn: (r) =>
+          (r.apiproxy == "{proxy_a}" and r.error_class == "{ec_a}") or
+          (r.apiproxy == "{proxy_b}" and r.error_class == "{ec_b}"))
+      |> group(columns: ["apiproxy", "error_class"])
+      |> sort(columns: ["_time"])
+    '''
+    try:
+        for table in _query_raw(settings, flux):
+            for rec in table.records:
+                proxy = rec.values.get("apiproxy", "")
+                ec    = rec.values.get("error_class", "")
+                ts    = pd.Timestamp(rec.get_time()).floor("h")
+                rate  = float(rec.get_value() or 0)
+                anom  = rec.values.get("is_anomaly", "false") == "true"
+
+                rows.setdefault(ts, {"a_rate": 0.0, "a_anomalous": False,
+                                     "b_rate": 0.0, "b_anomalous": False})
+                if proxy == proxy_a and ec == ec_a:
+                    rows[ts]["a_rate"]      = rate
+                    rows[ts]["a_anomalous"] = anom
+                elif proxy == proxy_b and ec == ec_b:
+                    rows[ts]["b_rate"]      = rate
+                    rows[ts]["b_anomalous"] = anom
+    except Exception:
+        return pd.DataFrame()
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame([{"hour": h, **v} for h, v in sorted(rows.items())])
+    return df
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Co-failure correlation model
 # ─────────────────────────────────────────────────────────────────────────────
