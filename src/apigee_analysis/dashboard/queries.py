@@ -1332,17 +1332,32 @@ def get_rate_history(settings: Settings, days: int = 14) -> pd.DataFrame:
     return pd.DataFrame(rows) if rows else pd.DataFrame()
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _get_corr_pairs(settings: Settings) -> pd.DataFrame:
+    """Shared cached computation: rate history → correlation pairs.
+
+    The heavy work (InfluxDB query + O(N²) cross-correlation) runs ONCE and is
+    cached for 1 hour. Both get_cascade_predictions() and get_correlation_matrix()
+    call this function so they share the same cached result rather than each
+    rerunning the expensive computation.
+
+    First call: ~10-15 seconds. Subsequent calls within the hour: instant.
+    """
+    from apigee_analysis.correlation import build_rate_matrix, compute_crosscorr_pairs
+
+    rate_df = get_rate_history(settings, days=7)   # 7 days is sufficient for correlation
+    if rate_df.empty:
+        return pd.DataFrame()
+    matrix = build_rate_matrix(rate_df)
+    return compute_crosscorr_pairs(matrix)
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def get_cascade_predictions(settings: Settings) -> pd.DataFrame:
     """Predict at-risk APIs using behavioral cross-correlation on error rate changes.
 
-    Model:
-    1. Build hourly error rate time series for all proxies (rate history).
-    2. Compute cross-correlation on first differences at lags 0-4h for all pairs.
-       This captures behavioral similarity — correlated rises AND falls — not just
-       coincident threshold breaches.
-    3. For each currently-anomalous API, measure its recent rate-of-change.
-    4. Score non-anomalous APIs by: |rate_change_of_driver| × correlation(driver, B).
+    Reuses _get_corr_pairs() (cached 1h) to avoid recomputing the O(N²)
+    correlation on every call.
 
     Returns columns: proxy, error_class, score, correlation, driver_proxy,
                      driver_ec, driver_lag, driver_change_pct, n_drivers,
@@ -1350,13 +1365,17 @@ def get_cascade_predictions(settings: Settings) -> pd.DataFrame:
     """
     from apigee_analysis.correlation import (
         build_rate_matrix,
-        compute_crosscorr_pairs,
         predict_cascade,
     )
 
-    rate_df   = get_rate_history(settings, days=14)
-    active_df = get_active_anomalies(settings)
+    corr_pairs = _get_corr_pairs(settings)          # shared cache
+    active_df  = get_active_anomalies(settings)
 
+    if corr_pairs.empty:
+        return pd.DataFrame()
+
+    # Need the rate matrix only for current rate-of-change calculation
+    rate_df = get_rate_history(settings, days=7)    # also cached
     if rate_df.empty:
         return pd.DataFrame()
 
@@ -1367,9 +1386,7 @@ def get_cascade_predictions(settings: Settings) -> pd.DataFrame:
         .days
     )
 
-    # Build behavioral correlation model
-    matrix     = build_rate_matrix(rate_df)
-    corr_pairs = compute_crosscorr_pairs(matrix)
+    matrix = build_rate_matrix(rate_df)
 
     if corr_pairs.empty:
         return pd.DataFrame()
@@ -1542,19 +1559,14 @@ def get_cascade_sankey_data(settings: Settings) -> dict:
 def get_correlation_matrix(settings: Settings, top_n: int = 30) -> tuple:
     """Build a square correlation matrix for the heatmap.
 
+    Reuses _get_corr_pairs() (cached 1h) — no redundant recomputation.
+
     Returns (matrix_df, key_list, anomalous_keys) where:
       matrix_df:     square DataFrame, index=columns=key strings, values=best_corr
       key_list:      ordered list of keys (rows/columns)
       anomalous_keys: set of keys currently anomalous (for highlighting)
     """
-    from apigee_analysis.correlation import build_rate_matrix, compute_crosscorr_pairs
-
-    rate_df = get_rate_history(settings, days=14)
-    if rate_df.empty:
-        return pd.DataFrame(), [], set()
-
-    matrix    = build_rate_matrix(rate_df)
-    corr_pairs = compute_crosscorr_pairs(matrix)
+    corr_pairs = _get_corr_pairs(settings)          # shared cache — instant if warm
     if corr_pairs.empty:
         return pd.DataFrame(), [], set()
 

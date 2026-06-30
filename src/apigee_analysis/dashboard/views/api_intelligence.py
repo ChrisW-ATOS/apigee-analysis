@@ -369,6 +369,17 @@ def render(settings: Settings) -> None:
 </div>
 """)
 
+    st.info(
+        "**First load:** The behavioral correlation model runs O(N²) cross-correlations "
+        "across all monitored APIs — this takes ~15 seconds on first load and is then "
+        "cached for 1 hour. Subsequent visits within the hour are instant.",
+        icon="⏳",
+    )
+
+    with st.spinner("Computing behavioral correlations across all APIs..."):
+        # Warm the shared cache here so both tabs benefit from the same computation
+        queries._get_corr_pairs(settings)
+
     tabs = st.tabs(["🌊  Cascade Flow", "🔥  Correlation Map"])
 
     with tabs[0]:
