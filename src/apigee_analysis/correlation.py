@@ -255,24 +255,14 @@ def update_correlation_pairs(settings) -> None:
 
         with InfluxDBClient(url=settings.influx_url, token=settings.influx_token,
                             org=settings.influx_org, timeout=60_000) as client:
-            flux = f'''
-            from(bucket: "{settings.anomaly_bucket.replace("Anomalies", settings.anomaly_bucket)}")
-              |> range(start: -7d)
-              |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
-              |> filter(fn: (r) => r._field == "error_rate")
-              |> group(columns: ["apiproxy", "error_class"])
-              |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
-            '''
-            # Use source_bucket (Apigee Reports) for rates — consistent with get_rate_history
-            flux_source = f'''
+            result = client.query_api().query_data_frame(f'''
             from(bucket: "{settings.anomaly_bucket}")
               |> range(start: -7d)
               |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
               |> filter(fn: (r) => r._field == "error_rate")
               |> group(columns: ["apiproxy", "error_class"])
               |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
-            '''
-            result = client.query_api().query_data_frame(flux_source)
+            ''')
 
         if result is None or (isinstance(result, list) and not result):
             log.warning("update_correlation_pairs: no rate data returned")
@@ -283,14 +273,18 @@ def update_correlation_pairs(settings) -> None:
         if result.empty:
             return
 
-        # Build rate matrix and compute pairs
+        # Build rate matrix — guard against NaN tags (query_data_frame quirk
+        # where tags become NaN floats when not present for a table group)
         rows = []
         for _, row in result.iterrows():
             proxy = row.get("apiproxy", "")
             ec    = row.get("error_class", "")
+            # query_data_frame can return NaN (float) for missing tags
+            if not isinstance(ec, str) or not ec:
+                continue
             ts    = pd.Timestamp(row["_time"]).floor("h")
             rate  = float(row.get("_value") or 0)
-            if proxy and ec:
+            if proxy:
                 rows.append({"proxy": proxy, "error_class": ec, "hour": ts, "rate": rate})
 
         if not rows:
