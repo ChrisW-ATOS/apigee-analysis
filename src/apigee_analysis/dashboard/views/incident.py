@@ -12,6 +12,11 @@ from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
 from apigee_analysis.dashboard.labels import friendly_proxy, friendly_type
 
+_NO_PREDICTION_MSG = (
+    "Predictions are generated hourly by the detection pipeline. "
+    "Run a backfill or wait for the next scheduled run."
+)
+
 _SEVERITY_COLORS = {
     "high":    "#B85450",
     "medium":  "#D97706",
@@ -112,17 +117,27 @@ def _anomaly_table(df: pd.DataFrame) -> None:
 _COLOURS = ["#2563EB", "#DC2626", "#16A34A", "#D97706", "#9333EA"]
 
 
-def _error_rate_chart(df: pd.DataFrame) -> None:
-    """Time-series of combined error rates for top proxies + 2h ETS forecast with CI."""
+def _error_rate_chart(df: pd.DataFrame, pred_df: pd.DataFrame) -> None:
+    """Historical error rates + AR(1) predictions stored in InfluxDB.
+
+    Predictions are written hourly by the detection pipeline (baseline.py +
+    detect.py) — not computed at render time. Each predicted point is plotted
+    2 hours after the detection timestamp that generated it.
+    """
     st.subheader("Predicted Error Rates — Top 10 Endpoints")
-    st.caption("Solid lines: actual hourly error rate · Dotted: 2-hour forecast · Shaded: 95% confidence")
 
     if df.empty:
         st.info("No error rate history available.")
         return
 
-    # Combine client + server into total error rate per proxy per hour.
-    # Both are fractions of total traffic so they sum to the total error fraction.
+    has_preds = not pred_df.empty
+    st.caption(
+        "Solid: actual hourly error rate  ·  Diamond: AR(1) prediction (2h ahead)"
+        if has_preds else
+        f"Solid: actual hourly error rate  ·  _{_NO_PREDICTION_MSG}_"
+    )
+
+    # Combine client + server into total error rate per proxy per hour
     total = (
         df.groupby(["proxy", "time"])
         .agg(error_rate=("error_rate", "sum"), is_anomaly=("is_anomaly", "any"))
@@ -131,17 +146,30 @@ def _error_rate_chart(df: pd.DataFrame) -> None:
     total["error_rate"] = total["error_rate"].clip(0, 1)
     total = total.sort_values("time")
 
+    # Combine predicted client + server into predicted total per proxy
+    if has_preds:
+        pred_total = (
+            pred_df.groupby(["proxy", "detection_time"])["predicted_rate"]
+            .sum()
+            .clip(0, 1)
+            .reset_index()
+        )
+        pred_total["plot_time"] = pred_total["detection_time"] + timedelta(hours=2)
+        pred_map = pred_total.set_index("proxy")
+    else:
+        pred_map = None
+
     fig = go.Figure()
 
     for i, proxy in enumerate(total["proxy"].unique()):
         grp    = total[total["proxy"] == proxy].sort_values("time").reset_index(drop=True)
         colour = _COLOURS[i % len(_COLOURS)]
-        label = friendly_proxy(proxy)[:40]
+        label  = friendly_proxy(proxy)[:40]
 
         anomaly_colours = ["#EF4444" if a else colour for a in grp["is_anomaly"]]
         anomaly_sizes   = [10 if a else 5 for a in grp["is_anomaly"]]
 
-        # Historical trace
+        # Historical line
         fig.add_trace(go.Scatter(
             x=grp["time"],
             y=grp["error_rate"] * 100,
@@ -157,72 +185,52 @@ def _error_rate_chart(df: pd.DataFrame) -> None:
             ),
         ))
 
-        # 2-hour forecast using Exponential Smoothing (Holt's double smoothing)
-        # with a 95% confidence interval shown as a shaded band.
-        if len(grp) >= 4:
-            try:
-                from statsmodels.tsa.holtwinters import ExponentialSmoothing
+        # Stored AR(1) prediction — plotted at detection_time + 2h
+        if pred_map is not None and proxy in pred_map.index:
+            p_rows = pred_map.loc[[proxy]]
+            if isinstance(p_rows, pd.DataFrame):
+                p_row = p_rows.iloc[-1]  # most recent prediction
+            else:
+                p_row = p_rows
 
-                y_vals = grp["error_rate"].values.astype(float)
-                model  = ExponentialSmoothing(
-                    y_vals,
-                    trend="add",
-                    damped_trend=True,   # damps long-run trend — avoids runaway extrapolation
-                    initialization_method="estimated",
-                )
-                fit       = model.fit(optimized=True, disp=False)
-                fcast     = fit.forecast(2)
-                sim       = fit.simulate(2, repetitions=200, error="add")
-                ci_lo     = np.clip(np.percentile(sim, 2.5,  axis=1), 0, 1)
-                ci_hi     = np.clip(np.percentile(sim, 97.5, axis=1), 0, 1)
+            t_last    = grp["time"].iloc[-1]
+            pred_time = pd.Timestamp(p_row["plot_time"])
+            pred_rate = float(p_row["predicted_rate"]) * 100
+            anchor_r  = float(grp["error_rate"].iloc[-1]) * 100
 
-                t_last  = grp["time"].iloc[-1]
-                proj_t  = [t_last + timedelta(hours=h) for h in [1, 2]]
-                proj_r  = [float(np.clip(v, 0, 1)) for v in fcast]
-                anchor_r = float(grp["error_rate"].iloc[-1])
+            hex_r = int(colour[1:3], 16)
+            hex_g = int(colour[3:5], 16)
+            hex_b = int(colour[5:7], 16)
 
-                # Confidence band (filled area)
-                band_x = [t_last] + proj_t + proj_t[::-1] + [t_last]
-                band_y = (
-                    [anchor_r * 100]
-                    + [v * 100 for v in ci_hi]
-                    + [v * 100 for v in ci_lo[::-1]]
-                    + [anchor_r * 100]
-                )
-                hex_r = int(colour[1:3], 16)
-                hex_g = int(colour[3:5], 16)
-                hex_b = int(colour[5:7], 16)
-                fill_color = f"rgba({hex_r},{hex_g},{hex_b},0.12)"
+            # Dotted connector from last actual point to prediction
+            fig.add_trace(go.Scatter(
+                x=[t_last, pred_time],
+                y=[anchor_r, pred_rate],
+                mode="lines",
+                line=dict(color=colour, width=1.5, dash="dot"),
+                showlegend=False,
+                hoverinfo="skip",
+            ))
 
-                fig.add_trace(go.Scatter(
-                    x=band_x, y=band_y,
-                    fill="toself",
-                    fillcolor=fill_color,
-                    line=dict(width=0),
-                    showlegend=False,
-                    hoverinfo="skip",
-                ))
+            # Prediction diamond
+            fig.add_trace(go.Scatter(
+                x=[pred_time],
+                y=[pred_rate],
+                mode="markers",
+                marker=dict(
+                    color=f"rgba({hex_r},{hex_g},{hex_b},0.9)",
+                    size=12,
+                    symbol="diamond",
+                    line=dict(color="white", width=2),
+                ),
+                showlegend=False,
+                hovertemplate=(
+                    f"<b>{label} — AR(1) forecast</b><br>"
+                    "Predicted for: %{x}<br>"
+                    "Predicted rate: %{y:.1f}%<extra></extra>"
+                ),
+            ))
 
-                # Forecast line
-                fig.add_trace(go.Scatter(
-                    x=[t_last] + proj_t,
-                    y=[anchor_r * 100] + [r * 100 for r in proj_r],
-                    mode="lines+markers",
-                    name=f"{label} (forecast)",
-                    line=dict(color=colour, width=2, dash="dot"),
-                    marker=dict(color=colour, size=7, symbol="diamond"),
-                    showlegend=False,
-                    hovertemplate=(
-                        f"<b>{label} (forecast)</b><br>"
-                        "Time: %{x}<br>"
-                        "Forecast: %{y:.1f}%<extra></extra>"
-                    ),
-                ))
-
-            except Exception:
-                pass   # silent fallback — chart still shows historical data
-
-    # Soft reference line at 10%
     fig.add_hline(
         y=10, line_dash="dash", line_color="#CBD5E1", line_width=1,
         annotation_text="10%", annotation_position="top left",
@@ -358,6 +366,7 @@ def render(settings: Settings) -> None:
         predicted_df   = queries.get_predicted_anomalies(settings)
         mv_df          = queries.get_multivariate_anomalies(settings)
         error_trend_df = queries.get_error_rate_trend(settings, top_n=10)
+        pred_df        = queries.get_error_rate_predictions(settings)
 
     # Predictive alert banner
     if not predicted_df.empty:
@@ -393,8 +402,8 @@ def render(settings: Settings) -> None:
 
     st.divider()
 
-    # Error rate trend + projection
-    _error_rate_chart(error_trend_df)
+    # Error rate trend + AR(1) predictions from InfluxDB
+    _error_rate_chart(error_trend_df, pred_df)
 
     st.divider()
 

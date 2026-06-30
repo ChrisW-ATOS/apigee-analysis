@@ -145,7 +145,7 @@ def _error_rate_points(df: pd.DataFrame, error_class: str,
         if len(rates) < 10:
             continue
 
-        zscore, _ = zscore_and_forecast(rates, forecast_hours=2)
+        zscore, forecast_z, predicted_rate = zscore_and_forecast(rates, forecast_hours=2)
         is_anomaly = abs(zscore) >= Z_THRESHOLD
 
         prev_consec = (prev or {}).get(("error_rate_anomaly", proxy, error_class), 0)
@@ -164,6 +164,23 @@ def _error_rate_points(df: pd.DataFrame, error_class: str,
             .field("consecutive_hours", consec)
             .time(at, WritePrecision.S)
         )
+
+        # Store the predicted error rate so the dashboard can plot it directly
+        # from InfluxDB rather than recomputing a naive linear projection at
+        # render time. Written whenever the current or forecast rate is elevated.
+        if predicted_rate is not None and forecast_z is not None:
+            if is_anomaly or abs(forecast_z) >= Z_THRESHOLD:
+                points.append(
+                    Point("predicted_anomaly")
+                    .tag("apiproxy",    proxy)
+                    .tag("error_class", error_class)
+                    .tag("measurement", "error_rate")
+                    .field("forecast_z_score",      float(round(forecast_z, 4)))
+                    .field("predicted_error_rate",  float(np.clip(predicted_rate, 0, 1)))
+                    .field("hours_until_threshold", 2)
+                    .time(at, WritePrecision.S)
+                )
+
         if is_anomaly:
             log.warning("ANOMALY error_rate [%s] | proxy=%s z=%.2f rate=%.2f%% | sustained=%s hours=%d",
                         error_class, proxy, zscore, rates.iloc[-1] * 100, sustained, consec)
@@ -292,7 +309,7 @@ def _run_at(settings: Settings, at: datetime) -> list[Point]:
             values = grp["_value"].astype(float)
             if len(values) < 10:
                 continue
-            zscore, forecast_z = zscore_and_forecast(values)
+            zscore, forecast_z, _ = zscore_and_forecast(values)
             is_anomaly = abs(zscore) >= Z_THRESHOLD
             prev_consec = prev.get(("traffic_anomaly", proxy, ""), 0)
             consec = (prev_consec + 1) if is_anomaly else 0

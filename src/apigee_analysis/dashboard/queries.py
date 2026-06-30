@@ -387,6 +387,43 @@ def get_anomaly_trend(
     })
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def get_error_rate_predictions(settings: Settings) -> pd.DataFrame:
+    """Latest AR(1) predicted error rates written by the detection pipeline.
+
+    Returns one row per (proxy, error_class) with the predicted_error_rate
+    at detection_time + 2h. The dashboard uses these instead of computing a
+    naive projection at render time.
+    """
+    flux = f'''
+    from(bucket: "{settings.anomaly_bucket}")
+      |> range(start: -25h)
+      |> filter(fn: (r) => r._measurement == "predicted_anomaly"
+                        and r.measurement == "error_rate")
+      |> filter(fn: (r) => r._field == "predicted_error_rate")
+      |> group(columns: ["apiproxy", "error_class"])
+      |> last()
+    '''
+    rows = []
+    try:
+        for table in _query_raw(settings, flux):
+            for rec in table.records:
+                proxy = rec.values.get("apiproxy", "")
+                ec    = rec.values.get("error_class", "")
+                t     = rec.get_time()
+                rate  = rec.get_value()
+                if proxy and t and rate is not None:
+                    rows.append({
+                        "proxy":          proxy,
+                        "error_class":    ec,
+                        "detection_time": t,
+                        "predicted_rate": float(rate),
+                    })
+    except Exception:
+        return pd.DataFrame()
+    return pd.DataFrame(rows) if rows else pd.DataFrame()
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def get_availability_scorecard(settings: Settings, days: int = 30) -> pd.DataFrame:
     """Per-OpCo API availability over the last `days` days.
