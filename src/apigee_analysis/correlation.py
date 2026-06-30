@@ -300,14 +300,16 @@ def update_correlation_pairs(settings) -> None:
 
         # Write pairs to InfluxDB
         now    = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        # Store best_lag as a TAG (not a field) so the dashboard can read
+        # best_corr with a simple last() query — no pivot needed, much faster.
         points = []
         for _, row in pairs.iterrows():
             points.append(
                 Point("api_correlation")
                 .tag("key_a",    row["key_a"])
                 .tag("key_b",    row["key_b"])
+                .tag("best_lag", str(int(row["best_lag"])))
                 .field("best_corr", float(row["best_corr"]))
-                .field("best_lag",  int(row["best_lag"]))
                 .time(now, WritePrecision.S)
             )
 

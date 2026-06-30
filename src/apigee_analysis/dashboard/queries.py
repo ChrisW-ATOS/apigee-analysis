@@ -1344,23 +1344,23 @@ def _get_corr_pairs(settings: Settings) -> pd.DataFrame:
     Falls back to on-demand computation if no stored pairs exist yet
     (e.g. first run before the analysis pipeline has written anything).
     """
-    # Try to read pre-computed pairs from InfluxDB
+    # Read pre-computed pairs — best_lag stored as a tag so no pivot needed.
+    # Simple last() per (key_a, key_b, best_lag) group — fast even at 6K pairs.
     rows = []
     try:
         for table in _query_raw(settings, f'''
         from(bucket: "{settings.anomaly_bucket}")
           |> range(start: -2h)
           |> filter(fn: (r) => r._measurement == "api_correlation")
-          |> filter(fn: (r) => r._field == "best_corr" or r._field == "best_lag")
-          |> group(columns: ["key_a", "key_b"])
+          |> filter(fn: (r) => r._field == "best_corr")
+          |> group(columns: ["key_a", "key_b", "best_lag"])
           |> last()
-          |> pivot(rowKey:["_time","key_a","key_b"], columnKey:["_field"], valueColumn:"_value")
         '''):
             for rec in table.records:
-                key_a = rec.values.get("key_a", "")
-                key_b = rec.values.get("key_b", "")
-                best_corr = float(rec.values.get("best_corr") or 0)
-                best_lag  = int(float(rec.values.get("best_lag") or 0))
+                key_a     = rec.values.get("key_a", "")
+                key_b     = rec.values.get("key_b", "")
+                best_lag  = int(rec.values.get("best_lag", "0") or "0")
+                best_corr = float(rec.get_value() or 0)
                 if key_a and key_b and best_corr >= 0.35:
                     rows.append({"key_a": key_a, "key_b": key_b,
                                  "best_corr": best_corr, "best_lag": best_lag})
