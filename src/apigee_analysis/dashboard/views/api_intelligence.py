@@ -202,8 +202,7 @@ def _heatmap_tab(settings: Settings) -> None:
         hovertext    = hover,
         hovertemplate = "%{hovertext}<extra></extra>",
         colorbar     = dict(
-            title      = "Correlation",
-            titlefont  = dict(color=_TEXT),
+            title      = dict(text="Correlation", font=dict(color=_TEXT)),
             tickfont   = dict(color=_TEXT),
             outlinecolor = _TEXT,
             outlinewidth = 0.5,
