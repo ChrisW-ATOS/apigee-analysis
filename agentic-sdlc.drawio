@@ -1,0 +1,605 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       AGENTIC DEVELOPMENT LIFECYCLE
+       Full end-to-end from planning through deployment and self-healing ops
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <diagram name="Agentic SDLC" id="agentic-sdlc">
+    <mxGraphModel dx="1654" dy="900" grid="0" gridSize="10" guides="0"
+                  tooltips="1" connect="0" arrows="1" fold="1" page="1"
+                  pageScale="1" pageWidth="2200" pageHeight="1600"
+                  math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ═══════════════════════════════════════════════════
+             BACKGROUND
+             ═══════════════════════════════════════════════════ -->
+        <mxCell id="bg" value="" style="fillColor=#0F0E2A;strokeColor=none;"
+                vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="2200" height="1600" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════
+             TITLE
+             ═══════════════════════════════════════════════════ -->
+        <mxCell id="title" value="Agentic Development Lifecycle"
+                style="text;html=1;strokeColor=none;fillColor=none;align=center;
+                       verticalAlign=middle;fontSize=28;fontStyle=1;fontColor=#FFFFFF;"
+                vertex="1" parent="1">
+          <mxGeometry x="0" y="20" width="2200" height="48" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle"
+                value="End-to-end autonomous pipeline: planning → build → test → deploy → predictive monitoring → self-healing"
+                style="text;html=1;strokeColor=none;fillColor=none;align=center;
+                       verticalAlign=middle;fontSize=13;fontColor=#7C6FAE;"
+                vertex="1" parent="1">
+          <mxGeometry x="0" y="66" width="2200" height="26" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════
+             ORCHESTRATION LAYER  (top band)
+             ═══════════════════════════════════════════════════ -->
+        <mxCell id="orch_bg" value=""
+                style="rounded=1;fillColor=#1E1B4B;strokeColor=#7C3AED;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="2080" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="orch_label"
+                value="ORCHESTRATION LAYER"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#A78BFA;
+                       letterSpacing=3;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="114" width="260" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Orchestrator node -->
+        <mxCell id="orch_node" value="Master Orchestrator Agent"
+                style="rounded=1;fillColor=#7C3AED;strokeColor=#A78BFA;strokeWidth=2;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;"
+                vertex="1" parent="1">
+          <mxGeometry x="860" y="136" width="480" height="72" as="geometry"/>
+        </mxCell>
+
+        <!-- Orch sub-labels -->
+        <mxCell id="orch_s1"
+                value="• Routes tasks between agents  • Manages shared context store  • Enforces quality gates  • Handles retries &amp; rollbacks  • Logs full audit trail"
+                style="text;html=1;strokeColor=none;fillColor=none;align=center;
+                       verticalAlign=middle;fontSize=10;fontColor=#C4B5FD;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="138" width="760" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="orch_s2"
+                value="• Receives webhook triggers (PR, deploy, alert)  • Maintains agent memory across runs  • Exposes agent status API  • Escalates to humans on low-confidence"
+                style="text;html=1;strokeColor=none;fillColor=none;align=center;
+                       verticalAlign=middle;fontSize=10;fontColor=#C4B5FD;"
+                vertex="1" parent="1">
+          <mxGeometry x="1360" y="138" width="760" height="68" as="geometry"/>
+        </mxCell>
+
+        <!-- Context store -->
+        <mxCell id="ctx_store"
+                value="Shared Context Store&#xa;(artifact registry, memory, logs)"
+                style="shape=cylinder3;fillColor=#312E81;strokeColor=#6D28D9;
+                       fontColor=#C4B5FD;fontSize=10;fontStyle=1;"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="246" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="ctx_e"
+                style="endArrow=none;startArrow=none;strokeColor=#6D28D9;strokeWidth=1.5;dashed=1;"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="260" y="290" as="sourcePoint"/>
+            <mxPoint x="860" y="172" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════
+             SDLC PIPELINE  (middle row, left to right)
+             ═══════════════════════════════════════════════════ -->
+
+        <!-- Swimlane background -->
+        <mxCell id="sdlc_bg" value=""
+                style="rounded=1;fillColor=#13122A;strokeColor=#374151;strokeWidth=1;"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="354" width="2080" height="460" as="geometry"/>
+        </mxCell>
+        <mxCell id="sdlc_lbl"
+                value="SDLC AGENT PIPELINE"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#6B7280;
+                       letterSpacing=3;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="358" width="300" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- AGENT CARD HELPER STYLE (reused below via individual cells) -->
+
+        <!-- 1 — PLANNING -->
+        <mxCell id="a1_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#3B82F6;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="388" width="264" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1_hdr" value="① Planning Agent"
+                style="rounded=0;fillColor=#1D4ED8;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="388" width="264" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· Product requirements&#xa;· Existing codebase context&#xa;· Historical failure patterns&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Breaks work into tasks&#xa;· Estimates complexity&#xa;· Identifies risk areas&#xa;· Generates feature spec&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Structured task list&#xa;· Acceptance criteria&#xa;· Risk register&#xa;· Architecture notes"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="432" width="264" height="356" as="geometry"/>
+        </mxCell>
+
+        <!-- 2 — BUILD -->
+        <mxCell id="a2_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#10B981;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="372" y="388" width="264" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2_hdr" value="② Build Agent"
+                style="rounded=0;fillColor=#065F46;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="372" y="388" width="264" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· Planning agent output&#xa;· Codebase snapshot&#xa;· Coding standards config&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Generates implementation&#xa;· Writes unit tests inline&#xa;· Documents changes&#xa;· Raises PRs automatically&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Pull request + diff&#xa;· Inline test suite&#xa;· Change log entry&#xa;· Dependency manifest"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="372" y="432" width="264" height="356" as="geometry"/>
+        </mxCell>
+
+        <!-- 3 — REVIEW -->
+        <mxCell id="a3_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#F59E0B;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="664" y="388" width="264" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3_hdr" value="③ Review Agent"
+                style="rounded=0;fillColor=#92400E;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="664" y="388" width="264" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· PR diff from build agent&#xa;· Security rule set&#xa;· Style guide &amp; patterns&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Static analysis scan&#xa;· Security vulnerability check&#xa;· Logic correctness review&#xa;· Suggests refactors&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Review comments&#xa;· Severity-ranked findings&#xa;· Approve / request changes&#xa;· SAST report"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="664" y="432" width="264" height="356" as="geometry"/>
+        </mxCell>
+
+        <!-- 4 — TESTING -->
+        <mxCell id="a4_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#EC4899;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="956" y="388" width="264" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4_hdr" value="④ Testing Agent"
+                style="rounded=0;fillColor=#9D174D;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="956" y="388" width="264" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· PR + review-approved diff&#xa;· Test environment config&#xa;· API contract spec&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Runs unit + integration tests&#xa;· Generates edge case tests&#xa;· Contract / schema validation&#xa;· Performance baseline check&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Test results report&#xa;· Coverage metrics&#xa;· Regression diff&#xa;· Pass / fail gate signal"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="956" y="432" width="264" height="356" as="geometry"/>
+        </mxCell>
+
+        <!-- 5 — VALIDATION -->
+        <mxCell id="a5_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#06B6D4;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="1248" y="388" width="264" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="a5_hdr" value="⑤ Validation Agent"
+                style="rounded=0;fillColor=#0E7490;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="1248" y="388" width="264" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a5_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· Test results + artifacts&#xa;· Acceptance criteria&#xa;· SLA / SLO thresholds&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Validates acceptance criteria&#xa;· Checks SLA compliance&#xa;· Load test simulation&#xa;· Chaos / failure injection&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Validation certificate&#xa;· SLA compliance report&#xa;· Rollout recommendation&#xa;· Risk confidence score"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="1248" y="432" width="264" height="356" as="geometry"/>
+        </mxCell>
+
+        <!-- 6 — DEPLOYMENT -->
+        <mxCell id="a6_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#EF4444;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="1540" y="388" width="264" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="a6_hdr" value="⑥ Deployment Agent"
+                style="rounded=0;fillColor=#991B1B;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="1540" y="388" width="264" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a6_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· Validation certificate&#xa;· Deployment config&#xa;· Target environment state&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Blue/green or canary rollout&#xa;· Health check polling&#xa;· Traffic shifting (0→100%)&#xa;· Auto-rollback on failure&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Deployment record + SHA&#xa;· Traffic shift timeline&#xa;· Rollback trigger log&#xa;· Handoff to monitoring"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="1540" y="432" width="264" height="356" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows between SDLC agents -->
+        <mxCell id="arr12" value="" style="endArrow=block;endFill=1;strokeColor=#10B981;strokeWidth=4;fillColor=#10B981;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="344" y="588" as="sourcePoint"/>
+            <mxPoint x="372" y="588" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr23" value="" style="endArrow=block;endFill=1;strokeColor=#F59E0B;strokeWidth=4;fillColor=#F59E0B;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="636" y="588" as="sourcePoint"/>
+            <mxPoint x="664" y="588" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr34" value="" style="endArrow=block;endFill=1;strokeColor=#EC4899;strokeWidth=4;fillColor=#EC4899;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="928" y="588" as="sourcePoint"/>
+            <mxPoint x="956" y="588" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr45" value="" style="endArrow=block;endFill=1;strokeColor=#06B6D4;strokeWidth=4;fillColor=#06B6D4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1220" y="588" as="sourcePoint"/>
+            <mxPoint x="1248" y="588" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr56" value="" style="endArrow=block;endFill=1;strokeColor=#EF4444;strokeWidth=4;fillColor=#EF4444;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1512" y="588" as="sourcePoint"/>
+            <mxPoint x="1540" y="588" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Orchestrator down-arrows to each agent -->
+        <mxCell id="oa1" value="" style="endArrow=open;endFill=0;strokeColor=#7C3AED;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="212" y="230" as="sourcePoint"/>
+            <mxPoint x="212" y="388" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oa2" value="" style="endArrow=open;endFill=0;strokeColor=#7C3AED;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="504" y="230" as="sourcePoint"/>
+            <mxPoint x="504" y="388" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oa3" value="" style="endArrow=open;endFill=0;strokeColor=#7C3AED;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="796" y="230" as="sourcePoint"/>
+            <mxPoint x="796" y="388" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oa4" value="" style="endArrow=open;endFill=0;strokeColor=#7C3AED;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1100" y="230" as="sourcePoint"/>
+            <mxPoint x="1100" y="388" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oa5" value="" style="endArrow=open;endFill=0;strokeColor=#7C3AED;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1380" y="230" as="sourcePoint"/>
+            <mxPoint x="1380" y="388" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oa6" value="" style="endArrow=open;endFill=0;strokeColor=#7C3AED;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1672" y="230" as="sourcePoint"/>
+            <mxPoint x="1672" y="388" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════
+             MONITORING LAYER  (bottom band)
+             ═══════════════════════════════════════════════════ -->
+
+        <!-- Section background -->
+        <mxCell id="mon_bg" value=""
+                style="rounded=1;fillColor=#0F172A;strokeColor=#EF4444;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="840" width="2080" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="mon_lbl"
+                value="MONITORING · PREDICTIVE INTELLIGENCE · SELF-HEALING"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#FCA5A5;
+                       letterSpacing=3;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="844" width="700" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- 7 — LIVE MONITORING -->
+        <mxCell id="a7_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#F97316;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="876" width="380" height="660" as="geometry"/>
+        </mxCell>
+        <mxCell id="a7_hdr" value="⑦ Live Monitoring Agent"
+                style="rounded=0;fillColor=#C2410C;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="876" width="380" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a7_body"
+                value="&lt;b&gt;Inputs (real-time)&lt;/b&gt;&#xa;· API error rates, latency, traffic&#xa;· Deployment record + SHA&#xa;· SLA / SLO thresholds&#xa;· Historical anomaly patterns&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Streams telemetry from InfluxDB&#xa;· Runs STL + Z-score anomaly detection&#xa;· Runs Isolation Forest (multivariate)&#xa;· Detects sustained &amp; flash anomalies&#xa;· Computes blast radius (affected apps)&#xa;· Triggers cascade risk predictions&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Anomaly events with severity&#xa;· Blast radius report&#xa;· Correlation signal to predictive agent&#xa;· Incident context packet&#xa;&#xa;&lt;b&gt;Live Stress Testing&lt;/b&gt;&#xa;· Continuously replays realistic load&#xa;  patterns from production traffic&#xa;· Identifies APIs approaching limits&#xa;· Generates live failure scenarios&#xa;  for the fix agent to pre-build against"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="80" y="920" width="380" height="616" as="geometry"/>
+        </mxCell>
+
+        <!-- 8 — PREDICTIVE AGENT -->
+        <mxCell id="a8_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#A855F7;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="500" y="876" width="380" height="660" as="geometry"/>
+        </mxCell>
+        <mxCell id="a8_hdr" value="⑧ Predictive Intelligence Agent"
+                style="rounded=0;fillColor=#7E22CE;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="500" y="876" width="380" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a8_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· Live anomaly events from ⑦&#xa;· AR(1) forecast signals&#xa;· Behavioral cross-correlations&#xa;· Historical co-failure patterns&#xa;· Prior agent context (planning,&#xa;  build, test, deploy records)&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Projects failure 1–4 hours ahead&#xa;  using AR(1) on STL residuals&#xa;· Computes cascade risk scores&#xa;  (behavioral cross-correlation)&#xa;· Ranks at-risk APIs by blast radius&#xa;· Determines root cause hypothesis&#xa;· Queries prior build/deploy context&#xa;  to identify likely change vectors&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Time-to-failure estimate per API&#xa;· Cascade risk ranking&#xa;· Root cause hypothesis packet&#xa;· Fix brief to proactive fix agent&#xa;· Confidence-weighted priority list"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="500" y="920" width="380" height="616" as="geometry"/>
+        </mxCell>
+
+        <!-- 9 — PROACTIVE FIX DEV -->
+        <mxCell id="a9_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#22D3EE;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="920" y="876" width="380" height="660" as="geometry"/>
+        </mxCell>
+        <mxCell id="a9_hdr" value="⑨ Proactive Fix Development Agent"
+                style="rounded=0;fillColor=#0E7490;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="920" y="876" width="380" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a9_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· Fix brief from predictive agent&#xa;· Codebase snapshot (from build agent)&#xa;· Prior test results + coverage&#xa;· Deployment config &amp; runbooks&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Generates targeted code fix&#xa;  before the issue materialises&#xa;· Writes tests for the fix scenario&#xa;· Stages fix in a shadow environment&#xa;· Runs validation against live-stress&#xa;  patterns from monitoring agent&#xa;· Produces full diff + rollout plan&#xa;&#xa;&lt;b&gt;Context Leveraged from Prior Agents&lt;/b&gt;&#xa;· ① Planning: original intent + risks&#xa;· ② Build: last known-good code path&#xa;· ③ Review: security constraints&#xa;· ④ Testing: coverage gaps to patch&#xa;· ⑤ Validation: SLA thresholds&#xa;· ⑥ Deploy: current canary state&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Staged fix PR (ready to deploy)&#xa;· Shadow test results&#xa;· Deploy recommendation + timing"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="920" y="920" width="380" height="616" as="geometry"/>
+        </mxCell>
+
+        <!-- 10 — AUTO DEPLOY / SELF-HEAL -->
+        <mxCell id="a10_box" value=""
+                style="rounded=1;fillColor=#1E293B;strokeColor=#4ADE80;strokeWidth=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="1340" y="876" width="380" height="660" as="geometry"/>
+        </mxCell>
+        <mxCell id="a10_hdr" value="⑩ Auto-Deploy / Self-Healing Agent"
+                style="rounded=0;fillColor=#14532D;strokeColor=none;
+                       fontColor=#FFFFFF;fontSize=13;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="1340" y="876" width="380" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="a10_body"
+                value="&lt;b&gt;Inputs&lt;/b&gt;&#xa;· Staged fix from agent ⑨&#xa;· Deploy recommendation&#xa;· Confidence threshold config&#xa;· Human approval signal (optional)&#xa;&#xa;&lt;b&gt;Decision Gate&lt;/b&gt;&#xa;· If confidence ≥ threshold AND&#xa;  routine fix (e.g. credential&#xa;  rotation, config revert):&#xa;  → Auto-deploy without human&#xa;· If novel fix OR high blast radius:&#xa;  → Escalate with full brief&#xa;&#xa;&lt;b&gt;Actions&lt;/b&gt;&#xa;· Rolling deploy with traffic shift&#xa;· Live health check polling&#xa;· Error rate validation post-deploy&#xa;· Auto-rollback if rate rises&#xa;· Stamps fix with issue SHA&#xa;&#xa;&lt;b&gt;Outputs&lt;/b&gt;&#xa;· Deployment record&#xa;· Issue → fix audit trail&#xa;· Signals monitoring agent to&#xa;  resume baseline tracking&#xa;· Updates context store with&#xa;  new known-good state"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#CBD5E1;
+                       spacingLeft=10;spacingTop=10;"
+                vertex="1" parent="1">
+          <mxGeometry x="1340" y="920" width="380" height="616" as="geometry"/>
+        </mxCell>
+
+        <!-- HUMAN ESCALATION node -->
+        <mxCell id="human_box" value="Human Escalation&#xa;&amp; Override"
+                style="rounded=1;fillColor=#7F1D1D;strokeColor=#FCA5A5;strokeWidth=2;
+                       fontColor=#FECACA;fontSize=12;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="1760" y="940" width="340" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="human_sub"
+                value="· Receives escalation packet with&#xa;  full agent trace &amp; confidence scores&#xa;· Can approve, reject, or modify fix&#xa;· Override triggers immediate deploy&#xa;· Rejection feeds back to fix agent"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#FCA5A5;
+                       spacingLeft=8;spacingTop=6;"
+                vertex="1" parent="1">
+          <mxGeometry x="1760" y="1050" width="340" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- Human escalation arrow from a10 -->
+        <mxCell id="h_arr" value="escalate"
+                style="endArrow=block;endFill=1;strokeColor=#FCA5A5;strokeWidth=2;
+                       fillColor=#FCA5A5;fontColor=#FCA5A5;fontSize=10;"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1720" y="990" as="sourcePoint"/>
+            <mxPoint x="1760" y="990" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Monitoring loop back arrows -->
+        <mxCell id="m_arr78" value=""
+                style="endArrow=block;endFill=1;strokeColor=#A855F7;strokeWidth=4;fillColor=#A855F7;"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="460" y="1050" as="sourcePoint"/>
+            <mxPoint x="500" y="1050" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m_arr89" value=""
+                style="endArrow=block;endFill=1;strokeColor=#22D3EE;strokeWidth=4;fillColor=#22D3EE;"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="880" y="1050" as="sourcePoint"/>
+            <mxPoint x="920" y="1050" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m_arr910" value=""
+                style="endArrow=block;endFill=1;strokeColor=#4ADE80;strokeWidth=4;fillColor=#4ADE80;"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1300" y="1050" as="sourcePoint"/>
+            <mxPoint x="1340" y="1050" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Feedback loop: deploy → monitoring (big curved arrow) -->
+        <mxCell id="feedback_arr"
+                value="continuous feedback loop"
+                style="endArrow=block;endFill=1;strokeColor=#EF4444;strokeWidth=3;
+                       fillColor=#EF4444;fontColor=#FCA5A5;fontSize=10;
+                       curved=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1672" y="788" as="sourcePoint"/>
+            <mxPoint x="270" y="1560" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="1672" y="1560"/>
+              <mxPoint x="270" y="1560"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Orchestrator ↔ monitoring -->
+        <mxCell id="orch_mon" value=""
+                style="endArrow=open;endFill=0;startArrow=open;startFill=0;
+                       strokeColor=#7C3AED;strokeWidth=1.5;dashed=1;"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1950" y="230" as="sourcePoint"/>
+            <mxPoint x="1950" y="876" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="orch_mon_lbl"
+                value="orchestrator&#xa;oversight"
+                style="text;html=1;strokeColor=none;fillColor=none;align=center;
+                       fontSize=9;fontColor=#A78BFA;"
+                vertex="1" parent="1">
+          <mxGeometry x="1958" y="500" width="80" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- LIVE STRESS TEST badge inside monitoring -->
+        <mxCell id="stress_badge"
+                value="⚡ LIVE STRESS TESTING"
+                style="rounded=1;fillColor=#7C2D12;strokeColor=#F97316;strokeWidth=2;
+                       fontColor=#FED7AA;fontSize=11;fontStyle=1;align=center;"
+                vertex="1" parent="1">
+          <mxGeometry x="100" y="1446" width="340" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="stress_sub"
+                value="Continuous production-traffic replay →&#xa;failure scenarios pre-built before they breach threshold"
+                style="text;html=1;strokeColor=none;fillColor=none;align=center;
+                       fontSize=10;fontColor=#FED7AA;"
+                vertex="1" parent="1">
+          <mxGeometry x="100" y="1490" width="340" height="52" as="geometry"/>
+        </mxCell>
+
+        <!-- Context handoff arrow: planning → fix agent (long dashed) -->
+        <mxCell id="ctx_fix"
+                value="prior agent context"
+                style="endArrow=block;endFill=1;strokeColor=#22D3EE;strokeWidth=1.5;
+                       dashed=1;fontColor=#67E8F9;fontSize=10;fillColor=#22D3EE;"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="212" y="788" as="sourcePoint"/>
+            <mxPoint x="1110" y="876" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════
+             LEGEND
+             ═══════════════════════════════════════════════════ -->
+        <mxCell id="leg_bg" value=""
+                style="rounded=1;fillColor=#1E1B4B;strokeColor=#374151;"
+                vertex="1" parent="1">
+          <mxGeometry x="1760" y="1200" width="340" height="310" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_title"
+                value="LEGEND"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       fontSize=10;fontStyle=1;fontColor=#A78BFA;letterSpacing=2;"
+                vertex="1" parent="1">
+          <mxGeometry x="1778" y="1212" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1"
+                value="━━  Sequential pipeline flow"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       fontSize=11;fontColor=#CBD5E1;"
+                vertex="1" parent="1">
+          <mxGeometry x="1778" y="1240" width="300" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2"
+                value="╌╌  Orchestrator control signal"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       fontSize=11;fontColor=#A78BFA;"
+                vertex="1" parent="1">
+          <mxGeometry x="1778" y="1270" width="300" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3"
+                value="━━  Monitoring feedback loop"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       fontSize=11;fontColor=#FCA5A5;"
+                vertex="1" parent="1">
+          <mxGeometry x="1778" y="1300" width="300" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4"
+                value="╌╌  Cross-agent context handoff"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       fontSize=11;fontColor=#67E8F9;"
+                vertex="1" parent="1">
+          <mxGeometry x="1778" y="1330" width="300" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5"
+                value="⚡  Live stress test → proactive fix"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       fontSize=11;fontColor=#FED7AA;"
+                vertex="1" parent="1">
+          <mxGeometry x="1778" y="1360" width="300" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg6"
+                value="🔴  Human escalation (low confidence&#xa;     or novel / high-blast-radius fix)"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       fontSize=11;fontColor=#FCA5A5;"
+                vertex="1" parent="1">
+          <mxGeometry x="1778" y="1390" width="300" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg7"
+                value="All agents share a common Context Store&#xa;(artifact registry + memory + audit log)"
+                style="text;html=1;strokeColor=none;fillColor=none;align=left;
+                       fontSize=10;fontColor=#6B7280;"
+                vertex="1" parent="1">
+          <mxGeometry x="1778" y="1444" width="300" height="52" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>
