@@ -437,6 +437,142 @@ def get_error_rate_predictions(settings: Settings) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
+def get_sla_trajectory(settings: Settings, days: int = 30) -> pd.DataFrame:
+    """Daily availability % per OpCo over the last `days` days."""
+    flux = f'''
+    from(bucket: "{settings.source_bucket}")
+      |> range(start: -{days}d)
+      |> filter(fn: (r) => r._field == "Sum of traffic")
+      |> filter(fn: (r) => r.xcountrycode != "" and r.xcountrycode != "(not set)")
+      |> group(columns: ["xcountrycode", "response_status_code"])
+      |> aggregateWindow(every: 1d, fn: sum, createEmpty: false)
+    '''
+    rows = []
+    try:
+        with _client(settings) as client:
+            result = client.query_api().query_data_frame(flux)
+        if result is None: return pd.DataFrame()
+        if isinstance(result, list):
+            if not result: return pd.DataFrame()
+            result = pd.concat(result, ignore_index=True)
+        if result.empty: return pd.DataFrame()
+
+        result["is_error"] = result["response_status_code"].astype(str).str.startswith(("4","5"))
+        for (country, date), grp in result.groupby(["xcountrycode", "_time"]):
+            total  = float(grp["_value"].sum())
+            errors = float(grp.loc[grp["is_error"], "_value"].sum())
+            if total > 0:
+                rows.append({
+                    "country":          country,
+                    "date":             pd.Timestamp(date).date(),
+                    "availability_pct": (1 - errors / total) * 100,
+                    "error_rate_pct":   errors / total * 100,
+                    "total_calls":      int(total),
+                })
+    except Exception:
+        return pd.DataFrame()
+    return pd.DataFrame(rows) if rows else pd.DataFrame()
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def get_chronic_proxies(settings: Settings, days: int = 30, top_n: int = 20) -> pd.DataFrame:
+    """Proxies ranked by total anomalous hours over the last `days` days."""
+    flux = f'''
+    from(bucket: "{settings.anomaly_bucket}")
+      |> range(start: -{days}d)
+      |> filter(fn: (r) => r._measurement == "traffic_anomaly"
+                        or r._measurement == "error_rate_anomaly")
+      |> filter(fn: (r) => r.is_anomaly == "true")
+      |> filter(fn: (r) => r._field == "z_score")
+      |> group(columns: ["apiproxy"])
+      |> count()
+      |> group()
+      |> sort(columns: ["_value"], desc: true)
+      |> limit(n: {top_n})
+    '''
+    rows = []
+    try:
+        for table in _query_raw(settings, flux):
+            for rec in table.records:
+                proxy = rec.values.get("apiproxy", "")
+                if proxy:
+                    rows.append({"proxy": proxy, "incident_hours": int(rec.get_value() or 0)})
+    except Exception:
+        return pd.DataFrame()
+    return pd.DataFrame(rows) if rows else pd.DataFrame()
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_partner_experience(settings: Settings, days: int = 30, top_n: int = 25) -> pd.DataFrame:
+    """Error rate experienced by each developer app over the last `days` days."""
+    flux = f'''
+    from(bucket: "{settings.source_bucket}")
+      |> range(start: -{days}d)
+      |> filter(fn: (r) => r._field == "Sum of traffic")
+      |> filter(fn: (r) => r.developer_app != "" and r.developer_app != "(not set)")
+      |> group(columns: ["developer_app", "response_status_code"])
+      |> sum()
+    '''
+    rows = []
+    try:
+        with _client(settings) as client:
+            result = client.query_api().query_data_frame(flux)
+        if result is None: return pd.DataFrame()
+        if isinstance(result, list):
+            if not result: return pd.DataFrame()
+            result = pd.concat(result, ignore_index=True)
+        if result.empty: return pd.DataFrame()
+
+        result["is_error"] = result["response_status_code"].astype(str).str.startswith(("4","5"))
+        for app, grp in result.groupby("developer_app"):
+            total  = float(grp["_value"].sum())
+            errors = float(grp.loc[grp["is_error"], "_value"].sum())
+            if total >= 100:   # ignore micro-traffic apps
+                rows.append({
+                    "app":           app,
+                    "total_calls":   int(total),
+                    "error_calls":   int(errors),
+                    "error_rate_pct": errors / total * 100,
+                })
+    except Exception:
+        return pd.DataFrame()
+    if not rows: return pd.DataFrame()
+    df = pd.DataFrame(rows).sort_values("total_calls", ascending=False).head(top_n)
+    return df.reset_index(drop=True)
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_traffic_trend(settings: Settings, days: int = 30) -> pd.DataFrame:
+    """Daily total API calls per OpCo over the last `days` days."""
+    flux = f'''
+    from(bucket: "{settings.source_bucket}")
+      |> range(start: -{days}d)
+      |> filter(fn: (r) => r._field == "Sum of traffic")
+      |> filter(fn: (r) => r.xcountrycode != "" and r.xcountrycode != "(not set)")
+      |> group(columns: ["xcountrycode"])
+      |> aggregateWindow(every: 1d, fn: sum, createEmpty: false)
+    '''
+    rows = []
+    try:
+        with _client(settings) as client:
+            result = client.query_api().query_data_frame(flux)
+        if result is None: return pd.DataFrame()
+        if isinstance(result, list):
+            if not result: return pd.DataFrame()
+            result = pd.concat(result, ignore_index=True)
+        if result.empty: return pd.DataFrame()
+        for _, row in result.iterrows():
+            rows.append({
+                "country":     row["xcountrycode"],
+                "date":        pd.Timestamp(row["_time"]).date(),
+                "total_calls": float(row["_value"]),
+            })
+    except Exception:
+        return pd.DataFrame()
+    return pd.DataFrame(rows) if rows else pd.DataFrame()
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
 def get_availability_scorecard(settings: Settings, days: int = 30) -> pd.DataFrame:
     """Per-OpCo API availability over the last `days` days.
 
