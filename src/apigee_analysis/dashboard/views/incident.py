@@ -118,11 +118,12 @@ _COLOURS = ["#2563EB", "#DC2626", "#16A34A", "#D97706", "#9333EA"]
 
 
 def _error_rate_chart(df: pd.DataFrame, pred_df: pd.DataFrame) -> None:
-    """Historical error rates + AR(1) predictions stored in InfluxDB.
+    """Historical error rates + AR(1) predictions from the most recent detection run.
 
-    Predictions are written hourly by the detection pipeline (baseline.py +
-    detect.py) — not computed at render time. Each predicted point is plotted
-    2 hours after the detection timestamp that generated it.
+    Predictions are written hourly by the detection pipeline. Only predictions
+    whose plot_time (detection_time + hours_ahead) is still in the future are
+    shown. If the last detection run was many hours ago, this chart will have
+    no dotted projection — which is correct, not a bug.
     """
     st.subheader("Predicted Error Rates — Top 10 Endpoints")
 
@@ -131,11 +132,17 @@ def _error_rate_chart(df: pd.DataFrame, pred_df: pd.DataFrame) -> None:
         return
 
     has_preds = not pred_df.empty
-    st.caption(
-        "Solid: actual hourly error rate  ·  Diamond: AR(1) prediction (2h ahead)"
-        if has_preds else
-        f"Solid: actual hourly error rate  ·  _{_NO_PREDICTION_MSG}_"
-    )
+    if has_preds:
+        gen_at = pred_df["generated_at"].iloc[0] if "generated_at" in pred_df.columns else "?"
+        st.caption(
+            f"Solid: actual hourly error rate  ·  Diamond: AR(1) forecast (model run {gen_at})"
+        )
+    else:
+        st.caption(
+            "Solid: actual hourly error rate  ·  "
+            "No future predictions available from the current detection run — "
+            "projections will appear after the next scheduled analysis (HH:10)"
+        )
 
     # Combine client + server into total error rate per proxy per hour
     total = (

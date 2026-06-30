@@ -395,45 +395,94 @@ def get_anomaly_trend(
 
 @st.cache_data(ttl=60, show_spinner=False)
 def get_error_rate_predictions(settings: Settings) -> pd.DataFrame:
-    """Latest AR(1) predicted error rates written by the detection pipeline.
+    """AR(1) predicted error rates from the MOST RECENT detection run only.
 
-    Returns one row per (proxy, error_class) with the predicted_error_rate
-    at detection_time + 2h. The dashboard uses these instead of computing a
-    naive projection at render time.
+    Correctness rules applied here:
+    1. Only predictions from the most recent detection run — using `last()` across
+       25 hours pulled in stale records from earlier runs (a proxy anomalous at
+       01:00 but recovered by 11:00 would return the 01:00 prediction, showing
+       plot_times deep in the past).
+    2. Only predictions whose plot_time (detection_time + hours_ahead) is still
+       in the future — past plot_times are meaningless as forward projections.
+
+    Returns columns: proxy, error_class, detection_time, hours_ahead,
+                     predicted_rate, plot_time, generated_at (detection_time str).
+    Empty DataFrame when no future predictions exist (e.g. analysis hasn't run
+    recently enough for any hours_ahead window to remain in the future).
     """
-    flux = f'''
-    from(bucket: "{settings.anomaly_bucket}")
-      |> range(start: -25h)
-      |> filter(fn: (r) => r._measurement == "predicted_anomaly"
-                        and r.measurement == "error_rate")
-      |> filter(fn: (r) => r._field == "predicted_error_rate")
-      |> group(columns: ["apiproxy", "error_class", "hours_ahead"])
-      |> last()
-    '''
+    from datetime import datetime, timezone as tz
+
+    now = datetime.now(tz.utc)
+
+    # Step 1: find the single most recent detection timestamp in the bucket.
+    # Limit the window to 90 minutes so we only see 1-2 runs, then take the latest.
+    latest_detection = None
+    try:
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: -90m)
+          |> filter(fn: (r) => r._measurement == "predicted_anomaly"
+                            and r.measurement == "error_rate")
+          |> filter(fn: (r) => r._field == "predicted_error_rate")
+          |> group() |> last()
+        '''):
+            for rec in table.records:
+                latest_detection = rec.get_time()
+    except Exception:
+        pass
+
+    if latest_detection is None:
+        return pd.DataFrame()   # no recent predictions at all
+
+    # Step 2: pull ALL predictions written at that exact detection timestamp.
+    # Use a ±90s window around it to account for sub-minute write spread.
+    from datetime import timedelta
+    t_start = (latest_detection - timedelta(seconds=90)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    t_stop  = (latest_detection + timedelta(seconds=90)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     rows = []
     try:
-        for table in _query_raw(settings, flux):
+        for table in _query_raw(settings, f'''
+        from(bucket: "{settings.anomaly_bucket}")
+          |> range(start: {t_start}, stop: {t_stop})
+          |> filter(fn: (r) => r._measurement == "predicted_anomaly"
+                            and r.measurement == "error_rate")
+          |> filter(fn: (r) => r._field == "predicted_error_rate")
+        '''):
             for rec in table.records:
                 proxy = rec.values.get("apiproxy", "")
                 ec    = rec.values.get("error_class", "")
-                t     = rec.get_time()
                 rate  = rec.get_value()
-                h     = rec.values.get("hours_ahead", "1")
-                if proxy and t and rate is not None:
+                h     = int(rec.values.get("hours_ahead", 1))
+                if proxy and ec and rate is not None:
                     rows.append({
                         "proxy":          proxy,
                         "error_class":    ec,
-                        "detection_time": t,
-                        "hours_ahead":    int(h),
+                        "detection_time": rec.get_time(),
+                        "hours_ahead":    h,
                         "predicted_rate": float(rate),
                     })
     except Exception:
         return pd.DataFrame()
+
     if not rows:
         return pd.DataFrame()
+
     df = pd.DataFrame(rows)
     df["plot_time"] = pd.to_datetime(df["detection_time"]) + pd.to_timedelta(df["hours_ahead"], unit="h")
-    return df
+
+    # Step 3: only keep predictions that are still in the future
+    df["plot_time_utc"] = df["plot_time"].apply(
+        lambda t: t.to_pydatetime().replace(tzinfo=tz.utc)
+    )
+    df = df[df["plot_time_utc"] > now].drop(columns=["plot_time_utc"])
+
+    if df.empty:
+        return pd.DataFrame()
+
+    # Carry the detection timestamp as a display string for chart caption
+    df["generated_at"] = latest_detection.strftime("%H:%M UTC")
+    return df.reset_index(drop=True)
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
