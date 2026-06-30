@@ -1416,3 +1416,171 @@ def get_cascade_predictions(settings: Settings) -> pd.DataFrame:
         "driver_proxy", "driver_ec", "driver_lag", "driver_change_pct",
         "n_drivers", "history_days",
     ]].reset_index(drop=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# API Intelligence — Sankey + Heatmap data
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_cascade_sankey_data(settings: Settings) -> dict:
+    """Build node + link lists for a Sankey cascade diagram.
+
+    Three node columns:
+      Left  (red):   currently-failing APIs
+      Centre(amber): correlated at-risk APIs (from cascade predictions)
+      Right (blue):  affected partner applications (from blast radius)
+
+    Link values:
+      Failing → At-risk: correlation × blast_calls (importance of the link)
+      At-risk  → Partner: partner app call volume
+    """
+    failing_df = get_active_anomalies(settings)
+    risk_df    = get_cascade_predictions(settings)
+    blast_df   = get_blast_radius(settings, hours_back=25)
+
+    # ── Failing nodes ─────────────────────────────────────────────────────────
+    failing_keys: list[str] = []
+    if not failing_df.empty:
+        uni = failing_df[failing_df["type"] != "Multivariate"]
+        failing_keys = [
+            f"{r['proxy']}|{r['error_class']}"
+            for _, r in uni.drop_duplicates("proxy").head(12).iterrows()
+        ]
+
+    # ── At-risk nodes (cascade predictions, top 12) ───────────────────────────
+    risk_keys: list[str] = []
+    risk_corr: dict[str, float] = {}
+    if not risk_df.empty:
+        top_risk = risk_df[
+            ~risk_df.apply(lambda r: f"{r['proxy']}|{r['error_class']}", axis=1)
+                     .isin(set(failing_keys))
+        ].head(12)
+        for _, r in top_risk.iterrows():
+            k = f"{r['proxy']}|{r['error_class']}"
+            risk_keys.append(k)
+            risk_corr[k] = float(r["correlation"])
+
+    # ── Partner nodes (top 10 apps from blast radius of failing proxies) ───────
+    partner_calls: dict[str, int] = {}
+    if not blast_df.empty:
+        failing_proxies = {k.split("|")[0] for k in failing_keys}
+        filtered = blast_df[
+            blast_df["proxy"].isin(failing_proxies) &
+            ~blast_df["app"].isin(["(not set)", ""])
+        ]
+        for app, grp in filtered.groupby("app"):
+            partner_calls[app] = int(grp["call_count"].sum())
+        # Keep top 10
+        partner_calls = dict(
+            sorted(partner_calls.items(), key=lambda x: x[1], reverse=True)[:10]
+        )
+
+    # Build unified node list with offset indices
+    all_nodes: list[dict] = []
+    for k in failing_keys:
+        all_nodes.append({"key": k, "col": "failing"})
+    for k in risk_keys:
+        all_nodes.append({"key": k, "col": "atrisk"})
+    for app in partner_calls:
+        all_nodes.append({"key": app, "col": "partner"})
+
+    node_idx = {n["key"]: i for i, n in enumerate(all_nodes)}
+
+    # ── Links ─────────────────────────────────────────────────────────────────
+    links: list[dict] = []
+
+    # Failing → At-risk (via cascade predictions)
+    if not risk_df.empty and failing_keys and risk_keys:
+        for _, r in risk_df.iterrows():
+            rk = f"{r['proxy']}|{r['error_class']}"
+            dk = f"{r['driver_proxy']}|{r['driver_ec']}"
+            if rk not in node_idx or dk not in node_idx:
+                continue
+            # Scale value by correlation and driver's blast radius
+            driver_calls = int(blast_df[blast_df["proxy"] == r["driver_proxy"]]["call_count"].sum()) if not blast_df.empty else 1000
+            value = max(100, int(float(r["correlation"]) * max(driver_calls, 1000)))
+            links.append({
+                "source": node_idx[dk],
+                "target": node_idx[rk],
+                "value":  value,
+                "color":  "rgba(239,68,68,0.35)",
+            })
+
+    # At-risk → Partner apps (via blast radius of at-risk proxies)
+    if not blast_df.empty and risk_keys and partner_calls:
+        risk_proxies = {k.split("|")[0] for k in risk_keys}
+        for app, total in partner_calls.items():
+            if app not in node_idx:
+                continue
+            # Distribute app calls across at-risk APIs proportionally
+            for rk in risk_keys:
+                rp = rk.split("|")[0]
+                sub = blast_df[(blast_df["proxy"] == rp) & (blast_df["app"] == app)]
+                if sub.empty:
+                    continue
+                v = int(sub["call_count"].sum())
+                if v > 0:
+                    links.append({
+                        "source": node_idx[rk],
+                        "target": node_idx[app],
+                        "value":  v,
+                        "color":  "rgba(245,158,11,0.35)",
+                    })
+
+    return {
+        "nodes":    all_nodes,
+        "node_idx": node_idx,
+        "links":    links,
+        "n_failing": len(failing_keys),
+        "n_risk":    len(risk_keys),
+        "n_partner": len(partner_calls),
+    }
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_correlation_matrix(settings: Settings, top_n: int = 30) -> tuple:
+    """Build a square correlation matrix for the heatmap.
+
+    Returns (matrix_df, key_list, anomalous_keys) where:
+      matrix_df:     square DataFrame, index=columns=key strings, values=best_corr
+      key_list:      ordered list of keys (rows/columns)
+      anomalous_keys: set of keys currently anomalous (for highlighting)
+    """
+    from apigee_analysis.correlation import build_rate_matrix, compute_crosscorr_pairs
+
+    rate_df = get_rate_history(settings, days=14)
+    if rate_df.empty:
+        return pd.DataFrame(), [], set()
+
+    matrix    = build_rate_matrix(rate_df)
+    corr_pairs = compute_crosscorr_pairs(matrix)
+    if corr_pairs.empty:
+        return pd.DataFrame(), [], set()
+
+    # Select top_n most-connected proxies
+    connection_counts = (
+        pd.concat([corr_pairs["key_a"], corr_pairs["key_b"]])
+        .value_counts()
+        .head(top_n)
+    )
+    top_keys = connection_counts.index.tolist()
+
+    # Filter pairs to only top_n proxies
+    filtered = corr_pairs[
+        corr_pairs["key_a"].isin(top_keys) & corr_pairs["key_b"].isin(top_keys)
+    ]
+
+    # Pivot to square matrix
+    mat = filtered.pivot(index="key_a", columns="key_b", values="best_corr").fillna(0)
+    # Ensure all top_keys appear in both axes
+    mat = mat.reindex(index=top_keys, columns=top_keys, fill_value=0)
+
+    # Currently anomalous keys
+    active_df = get_active_anomalies(settings)
+    anomalous: set[str] = set()
+    if not active_df.empty:
+        for _, r in active_df.iterrows():
+            anomalous.add(f"{r['proxy']}|{r['error_class']}")
+
+    return mat, top_keys, anomalous
