@@ -1143,40 +1143,63 @@ def get_incident_priorities(settings: Settings) -> pd.DataFrame:
                      sustained, total_calls, unique_apps, unique_countries,
                      priority, top_apps (list of top affected app names).
     """
-    # Get current error rates, z_scores, and duration via pivot
-    rows = []
-    try:
-        for table in _query_raw(settings, f'''
-        from(bucket: "{settings.anomaly_bucket}")
-          |> range(start: -25h)
-          |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
-          |> filter(fn: (r) => r._field == "z_score" or r._field == "error_rate"
-                            or r._field == "consecutive_hours")
-          |> group(columns: ["apiproxy", "error_class", "is_anomaly", "sustained"])
-          |> last()
-          |> pivot(rowKey:["_time","apiproxy","error_class","is_anomaly","sustained"],
-                   columnKey:["_field"], valueColumn:"_value")
-          |> filter(fn: (r) => r.is_anomaly == "true")
-        '''):
-            for rec in table.records:
-                proxy = rec.values.get("apiproxy", "")
-                ec    = rec.values.get("error_class", "")
-                if proxy and ec:
-                    rows.append({
-                        "proxy":             proxy,
-                        "error_class":       ec,
-                        "z_score":           float(rec.values.get("z_score") or 0),
-                        "error_rate":        float(rec.values.get("error_rate") or 0),
-                        "consecutive_hours": int(float(rec.values.get("consecutive_hours") or 1)),
-                        "sustained":         rec.values.get("sustained", "false") == "true",
-                    })
-    except Exception:
+    # Step 1: get currently-anomalous proxies using the same approach as get_active_anomalies
+    # (group by proxy+ec, last() per group, filter is_anomaly=true — no pivot needed)
+    z_rows = []
+    for table in _query_raw(settings, f'''
+    from(bucket: "{settings.anomaly_bucket}")
+      |> range(start: -25h)
+      |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+      |> filter(fn: (r) => r._field == "z_score")
+      |> group(columns: ["apiproxy", "error_class"])
+      |> last()
+      |> filter(fn: (r) => r.is_anomaly == "true")
+    '''):
+        for rec in table.records:
+            proxy = rec.values.get("apiproxy", "")
+            ec    = rec.values.get("error_class", "")
+            if proxy and ec:
+                z_rows.append({
+                    "proxy":             proxy,
+                    "error_class":       ec,
+                    "z_score":           float(rec.get_value() or 0),
+                    "consecutive_hours": int(float(rec.values.get("consecutive_hours") or 1)),
+                    "sustained":         rec.values.get("sustained", "false") == "true",
+                })
+
+    if not z_rows:
         return pd.DataFrame()
 
-    if not rows:
-        return pd.DataFrame()
+    incidents = pd.DataFrame(z_rows).drop_duplicates(subset=["proxy", "error_class"])
 
-    incidents = pd.DataFrame(rows).drop_duplicates(subset=["proxy", "error_class"])
+    # Step 2: fetch error rates separately for those proxies
+    anomalous_keys = set(incidents["proxy"].unique())
+    er_rows = []
+    for table in _query_raw(settings, f'''
+    from(bucket: "{settings.anomaly_bucket}")
+      |> range(start: -25h)
+      |> filter(fn: (r) => r._measurement == "error_rate_anomaly")
+      |> filter(fn: (r) => r._field == "error_rate")
+      |> group(columns: ["apiproxy", "error_class"])
+      |> last()
+    '''):
+        for rec in table.records:
+            proxy = rec.values.get("apiproxy", "")
+            ec    = rec.values.get("error_class", "")
+            if proxy in anomalous_keys and ec:
+                er_rows.append({
+                    "proxy":      proxy,
+                    "error_class": ec,
+                    "error_rate": float(rec.get_value() or 0),
+                })
+
+    if er_rows:
+        er_df = pd.DataFrame(er_rows)
+        incidents = incidents.merge(er_df, on=["proxy", "error_class"], how="left")
+    else:
+        incidents["error_rate"] = 0.0
+
+    incidents["error_rate"] = incidents["error_rate"].fillna(0.0)
 
     # Join with blast radius for business impact
     blast = get_blast_radius(settings, hours_back=25)
