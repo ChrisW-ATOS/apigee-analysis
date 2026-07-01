@@ -5,13 +5,17 @@ import streamlit as st
 
 from apigee_analysis.config import get_settings
 from apigee_analysis.dashboard.views import (
+    agent_audit_log,
     api_intelligence,
+    capacity_forecast,
     executive,
     feature_pipeline,
     incident_response,
     live_monitoring,
     opco_analytics,
+    quality_testing,
     role_based_preview,
+    runbook_library,
     teams_integration,
 )
 
@@ -76,7 +80,9 @@ with st.sidebar:
     page = st.radio(
         "Navigate",
         options=["Platform Overview", "Monitoring", "Incident Response",
-                 "API Intelligence", "OpCo Analytics", "Feature Pipeline",
+                 "API Intelligence", "OpCo Analytics",
+                 "Feature Pipeline", "Quality & Testing", "Runbook Library",
+                 "Agent Audit Log", "Capacity & Cost Forecasting",
                  "Role-Based Views", "Teams Integration"],
         label_visibility="collapsed",
     )
@@ -102,6 +108,14 @@ elif page == "OpCo Analytics":
     opco_analytics.render(settings)
 elif page == "Feature Pipeline":
     feature_pipeline.render(settings)
+elif page == "Quality & Testing":
+    quality_testing.render(settings)
+elif page == "Runbook Library":
+    runbook_library.render(settings)
+elif page == "Agent Audit Log":
+    agent_audit_log.render(settings)
+elif page == "Capacity & Cost Forecasting":
+    capacity_forecast.render(settings)
 elif page == "Role-Based Views":
     role_based_preview.render(settings)
 elif page == "Teams Integration":
