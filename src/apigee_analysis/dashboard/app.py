@@ -5,18 +5,12 @@ import streamlit as st
 
 from apigee_analysis.config import get_settings
 from apigee_analysis.dashboard.views import (
-    agent_audit_log,
+    agentic_sdlc,
     api_intelligence,
-    capacity_forecast,
+    enterprise_integration,
     executive,
-    feature_pipeline,
-    incident_response,
     live_monitoring,
     opco_analytics,
-    quality_testing,
-    role_based_preview,
-    runbook_library,
-    teams_integration,
 )
 
 st.set_page_config(
@@ -73,17 +67,14 @@ with st.sidebar:
     </div>
 </div>
 """)
-    st.caption("Preview only — tenant integration not yet connected. See **Role-Based Views**.")
+    st.caption("Preview only — tenant integration not yet connected. See **Enterprise Integration**.")
 
     st.divider()
 
     page = st.radio(
         "Navigate",
-        options=["Platform Overview", "Monitoring", "Incident Response",
-                 "API Intelligence", "OpCo Analytics",
-                 "Feature Pipeline", "Quality & Testing", "Runbook Library",
-                 "Agent Audit Log", "Capacity & Cost Forecasting",
-                 "Role-Based Views", "Teams Integration"],
+        options=["Platform Overview", "Monitoring", "API Intelligence",
+                 "OpCo Analytics", "Agentic SDLC", "Enterprise Integration"],
         label_visibility="collapsed",
     )
 
@@ -100,23 +91,11 @@ if page == "Platform Overview":
     executive.render(settings)
 elif page == "Monitoring":
     live_monitoring.render(settings)
-elif page == "Incident Response":
-    incident_response.render(settings)
 elif page == "API Intelligence":
     api_intelligence.render(settings)
 elif page == "OpCo Analytics":
     opco_analytics.render(settings)
-elif page == "Feature Pipeline":
-    feature_pipeline.render(settings)
-elif page == "Quality & Testing":
-    quality_testing.render(settings)
-elif page == "Runbook Library":
-    runbook_library.render(settings)
-elif page == "Agent Audit Log":
-    agent_audit_log.render(settings)
-elif page == "Capacity & Cost Forecasting":
-    capacity_forecast.render(settings)
-elif page == "Role-Based Views":
-    role_based_preview.render(settings)
-elif page == "Teams Integration":
-    teams_integration.render(settings)
+elif page == "Agentic SDLC":
+    agentic_sdlc.render(settings)
+elif page == "Enterprise Integration":
+    enterprise_integration.render(settings)

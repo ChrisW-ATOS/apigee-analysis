@@ -146,8 +146,9 @@ def _decision_log(df: pd.DataFrame) -> None:
 """)
 
 
-def render(settings: Settings) -> None:
-    st.html(f"""
+def render(settings: Settings, embedded: bool = False) -> None:
+    if not embedded:
+        st.html(f"""
 <div style="background:{_NAVY};border-radius:12px;padding:20px 28px;margin-bottom:20px;">
     <div style="font-size:22px;font-weight:800;color:#FFFFFF;margin-bottom:6px;">
         Agent Decision Audit Log
@@ -166,5 +167,11 @@ def render(settings: Settings) -> None:
     st.divider()
     _confidence_trend(df)
     st.divider()
-    filtered = _filters(df)
-    _decision_log(filtered)
+
+    if embedded:
+        # Condensed: skip filters, show 5 most recent decisions only
+        st.subheader("Recent Decisions")
+        _decision_log(df.head(5))
+    else:
+        filtered = _filters(df)
+        _decision_log(filtered)

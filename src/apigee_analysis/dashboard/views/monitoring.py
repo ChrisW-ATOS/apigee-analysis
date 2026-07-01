@@ -176,45 +176,6 @@ def _reliability_scores(settings: Settings) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tab 3 — Chronic Problem APIs
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _chronic_problems(settings: Settings) -> None:
-    st.subheader("Chronic Problem APIs — Last 30 Days")
-    st.caption("APIs ranked by total anomalous hours. Persistent issues with the same proxy indicate a structural rather than transient problem.")
-
-    days = st.selectbox("Period", [7, 14, 30], index=2, format_func=lambda x: f"Last {x} days")
-
-    with st.spinner("Querying anomaly history..."):
-        df = queries.get_chronic_proxies(settings, days=days, top_n=20)
-
-    if df.empty:
-        st.info("No anomaly history found.")
-        return
-
-    df["label"] = df["proxy"].apply(friendly_proxy)
-
-    fig = px.bar(
-        df, x="incident_hours", y="label",
-        orientation="h",
-        color="incident_hours",
-        color_continuous_scale=["#FEF9C3", "#DC2626"],
-        labels={"incident_hours": "Anomalous Hours", "label": "API"},
-        text="incident_hours",
-    )
-    fig.update_layout(
-        height=520, coloraxis_showscale=False,
-        yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
-        xaxis=dict(title="Total Anomalous Hours"),
-        plot_bgcolor="#FAFAFA", paper_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=0, r=0, t=10, b=0),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.caption(f"Top {len(df)} most problematic APIs across all anomaly types in the last {days} days.")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Tab 4 — Partner Experience
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -375,29 +336,3 @@ def _traffic_forecast(settings: Settings) -> None:
                     st.markdown(f"▼ **{r['Country']}** {r['Growth']:.1f}% · {r['Avg Daily Calls (recent)']:,} calls/day")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Page render
-# ─────────────────────────────────────────────────────────────────────────────
-
-def render(settings: Settings) -> None:
-    st.header("Platform Monitoring")
-    st.caption("Historical trends, reliability scoring, and partner insights — last 30 days")
-
-    tabs = st.tabs([
-        "📈  SLA Trajectory",
-        "⭐  Reliability Scores",
-        "🔁  Chronic Problems",
-        "🤝  Partner Experience",
-        "🚀  Traffic Forecast",
-    ])
-
-    with tabs[0]:
-        _sla_trajectory(settings)
-    with tabs[1]:
-        _reliability_scores(settings)
-    with tabs[2]:
-        _chronic_problems(settings)
-    with tabs[3]:
-        _partner_experience(settings)
-    with tabs[4]:
-        _traffic_forecast(settings)

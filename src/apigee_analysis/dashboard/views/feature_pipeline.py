@@ -231,8 +231,9 @@ def _environment_grid() -> None:
 """)
 
 
-def render(settings: Settings) -> None:
-    st.html(f"""
+def render(settings: Settings, embedded: bool = False) -> None:
+    if not embedded:
+        st.html(f"""
 <div style="background:{_NAVY};border-radius:12px;padding:20px 28px;margin-bottom:20px;">
     <div style="font-size:22px;font-weight:800;color:#FFFFFF;margin-bottom:6px;">
         Feature Pipeline

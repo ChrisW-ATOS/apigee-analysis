@@ -10,7 +10,7 @@ from apigee_analysis.dashboard.labels import friendly_proxy
 
 
 def render(settings: Settings) -> None:
-    st.header("Incident Impact")
+    st.subheader("Impact Visualization")
     st.caption("Which partner applications and countries are affected by active incidents")
 
     # ── Filters ───────────────────────────────────────────────────────────────

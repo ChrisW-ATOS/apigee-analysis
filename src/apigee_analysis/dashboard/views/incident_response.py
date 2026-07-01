@@ -519,121 +519,29 @@ def _current_incidents_tab(settings: Settings) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Predicted Issues tab
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _predicted_tab(settings: Settings) -> None:
-    st.subheader("Predicted Issues — Pre-emptive Action")
-    st.caption(
-        "APIs at elevated cascade risk based on behavioral correlation with currently-failing APIs. "
-        "Act now to prevent the failure propagating."
-    )
-
-    with st.spinner("Loading predictions..."):
-        pred = queries.get_cascade_predictions(settings)
-
-    if pred.empty:
-        st.success(
-            "No APIs at elevated cascade risk. Either no significant correlation patterns "
-            "are active, or no APIs are currently showing meaningful rate changes."
-        )
-        return
-
-    high = pred[(pred["score"] >= 0.4) & (pred["correlation"] >= 0.60)]
-    med  = pred[~((pred["score"] >= 0.4) & (pred["correlation"] >= 0.60)) &
-                (pred["score"] >= 0.20) & (pred["correlation"] >= 0.40)]
-
-    st.markdown(
-        f"**{len(pred)} APIs at risk** — {len(high)} HIGH, {len(med)} MEDIUM. "
-        f"Address the driver APIs first to prevent the cascade."
-    )
-    st.divider()
-
-    for _, row in pred.head(8).iterrows():
-        name        = friendly_proxy(row["proxy"])
-        ec          = row["error_class"]
-        driver      = friendly_proxy(row["driver_proxy"])
-        driver_ec   = row["driver_ec"]
-        corr        = float(row["correlation"])
-        lag         = int(row["driver_lag"])
-        change_pct  = float(row["driver_change_pct"])
-
-        label, color = ("HIGH", "#EF4444") if row["score"] >= 0.4 and corr >= 0.6 \
-                    else ("MEDIUM", "#F59E0B")
-        lag_str   = "simultaneously" if lag == 0 else f"within {lag}h"
-        ec_str    = "4xx" if ec == "client" else "5xx"
-        drv_ec_str = "4xx" if driver_ec == "client" else "5xx"
-
-        # Pre-emptive effect
-        pre_effect = (
-            f"If the historical pattern repeats, **{name}** ({ec_str}) is likely to "
-            f"follow **{driver}** ({drv_ec_str}) — which rose {change_pct:+.0f}pp in the "
-            f"last 2 hours — {lag_str}. Correlation strength: **{corr:.2f}**."
-        )
-        # Pre-emptive hypothesis
-        pre_hyp = (
-            f"The behavioral correlation suggests a shared dependency with {driver}. "
-            f"The root cause of {driver}'s current failure is likely also the "
-            f"failure mechanism for {name} — investigate the same infrastructure, "
-            f"authentication chain, or backend service."
-        )
-        # Pre-emptive action
-        pre_steps = [
-            f"Identify what {driver} and {name} share — authentication service, database, backend API",
-            f"Investigate the root cause of {driver}'s current {change_pct:+.0f}pp rise",
-            f"Pre-emptively check {name}'s health indicators before the cascade reaches it",
-            f"If a shared dependency is failing, prioritise fixing that over individual proxies",
-            f"Alert the team managing {name} to stand by for potential incident",
-        ]
-
-        with st.expander(
-            f"{'🔴' if label == 'HIGH' else '🟡'} **{name}** — {label} cascade risk "
-            f"(corr {corr:.2f} with {driver})",
-            expanded=(pred.index[pred["proxy"] == row["proxy"]][0] < 2),
-        ):
-            col_l, col_r = st.columns([3, 1])
-            with col_l:
-                st.markdown(f"**Predicted effect:**  \n{pre_effect}")
-                st.markdown(f"**Hypothesis:**  \n{pre_hyp}")
-            with col_r:
-                st.metric("Correlation",    f"{corr:.2f}")
-                st.metric("Driver change",  f"{change_pct:+.0f}pp")
-                st.metric("Expected lag",   f"{lag}h" if lag > 0 else "Now")
-
-            st.markdown("**Pre-emptive steps:**")
-            for i, step in enumerate(pre_steps, 1):
-                st.markdown(f"{i}. {step}")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Page render
 # ─────────────────────────────────────────────────────────────────────────────
 
-def render(settings: Settings) -> None:
-    # Initialise session state
+def init_session_state() -> None:
+    """Call once at the top of the hosting page, before checking ar_proxy."""
     for k, v in [("ar_proxy", None), ("ar_type", None),
                  ("ar_ec", None), ("ar_dispatched", False)]:
         if k not in st.session_state:
             st.session_state[k] = v
 
-    # If auto-resolve was triggered, take over the whole page
-    if st.session_state.ar_proxy:
-        _auto_resolve_page(settings)
-        return
 
-    st.header("Incident Response")
-    st.caption(
-        "Triage existing incidents by business impact · Pre-empt predicted cascades · "
-        "Auto-resolve routine issues"
-    )
+def render(settings: Settings, embedded: bool = False) -> None:
+    """Render the 'Respond & Resolve' incident triage content.
 
-    tabs = st.tabs([
-        "🚨  Current Incidents",
-        "⚡  Predicted Issues",
-    ])
+    When embedded=True (nested inside Monitoring), the caller is responsible
+    for the auto-resolve full-page takeover check via init_session_state() +
+    _auto_resolve_page() — this function just renders the incident list.
+    """
+    if not embedded:
+        init_session_state()
+        if st.session_state.ar_proxy:
+            _auto_resolve_page(settings)
+            return
+        st.header("Incident Response")
 
-    with tabs[0]:
-        _current_incidents_tab(settings)
-
-    with tabs[1]:
-        _predicted_tab(settings)
+    _current_incidents_tab(settings)

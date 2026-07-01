@@ -188,8 +188,9 @@ def _cost_by_opco(df: pd.DataFrame) -> None:
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render(settings: Settings) -> None:
-    st.html(f"""
+def render(settings: Settings, embedded: bool = False) -> None:
+    if not embedded:
+        st.html(f"""
 <div style="background:{_NAVY};border-radius:12px;padding:20px 28px;margin-bottom:20px;">
     <div style="font-size:22px;font-weight:800;color:#FFFFFF;margin-bottom:6px;">
         Capacity &amp; Cost Forecasting
@@ -211,8 +212,12 @@ def render(settings: Settings) -> None:
     _cost_trend_chart(df, growth_pct)
     st.divider()
 
-    col_l, col_r = st.columns([3, 2])
-    with col_l:
+    if embedded:
+        # Condensed: capacity headroom table only — skip the cost-by-OpCo pie
         _capacity_table(df)
-    with col_r:
-        _cost_by_opco(df)
+    else:
+        col_l, col_r = st.columns([3, 2])
+        with col_l:
+            _capacity_table(df)
+        with col_r:
+            _cost_by_opco(df)
