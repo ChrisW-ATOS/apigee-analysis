@@ -7,6 +7,7 @@ from apigee_analysis.config import get_settings
 from apigee_analysis.dashboard.views import (
     api_intelligence,
     executive,
+    feature_pipeline,
     incident_response,
     live_monitoring,
     opco_analytics,
@@ -75,7 +76,7 @@ with st.sidebar:
     page = st.radio(
         "Navigate",
         options=["Platform Overview", "Monitoring", "Incident Response",
-                 "API Intelligence", "OpCo Analytics",
+                 "API Intelligence", "OpCo Analytics", "Feature Pipeline",
                  "Role-Based Views", "Teams Integration"],
         label_visibility="collapsed",
     )
@@ -99,6 +100,8 @@ elif page == "API Intelligence":
     api_intelligence.render(settings)
 elif page == "OpCo Analytics":
     opco_analytics.render(settings)
+elif page == "Feature Pipeline":
+    feature_pipeline.render(settings)
 elif page == "Role-Based Views":
     role_based_preview.render(settings)
 elif page == "Teams Integration":
