@@ -10,7 +10,7 @@ import streamlit as st
 
 from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
-from apigee_analysis.dashboard.labels import friendly_proxy, friendly_type
+from apigee_analysis.dashboard.labels import friendly_percentile, friendly_proxy, friendly_type
 
 _NO_PREDICTION_MSG = (
     "Predictions are generated hourly by the detection pipeline. "
@@ -93,7 +93,7 @@ def _anomaly_table(df: pd.DataFrame) -> None:
         return
 
     display = df.copy()
-    display["Signal Strength"] = display["z_score"].apply(lambda x: f"{abs(x):.1f}×")
+    display["Signal Strength"] = display["z_score"].apply(lambda x: friendly_percentile(x, compact=True))
     display["Error Rate"] = display["error_rate"].apply(
         lambda x: f"{x:.1%}" if pd.notna(x) and x is not None else "—"
     )
@@ -269,9 +269,9 @@ def _multivariate_section(mv_df: pd.DataFrame) -> None:
                       "client_rate", "server_rate"]].copy()
     display["API Service"]        = display["proxy"].apply(friendly_proxy)
     display["Anomaly Confidence"] = display["score"].apply(lambda x: f"{x:.4f}")
-    display["Traffic Signal"]     = display["traffic_z"].apply(lambda x: f"{abs(x):.1f}×")
-    display["App Error Signal"]   = display["client_z"].apply(lambda x: f"{abs(x):.1f}×")
-    display["Service Fail Signal"]= display["server_z"].apply(lambda x: f"{abs(x):.1f}×")
+    display["Traffic Signal"]     = display["traffic_z"].apply(lambda x: friendly_percentile(x, compact=True))
+    display["App Error Signal"]   = display["client_z"].apply(lambda x: friendly_percentile(x, compact=True))
+    display["Service Fail Signal"]= display["server_z"].apply(lambda x: friendly_percentile(x, compact=True))
     display["App Error Rate"]     = display["client_rate"].apply(lambda x: f"{x:.1%}")
     display["Service Fail Rate"]  = display["server_rate"].apply(lambda x: f"{x:.1%}")
     st.dataframe(

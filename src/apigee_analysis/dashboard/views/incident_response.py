@@ -5,7 +5,7 @@ import streamlit as st
 
 from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
-from apigee_analysis.dashboard.labels import friendly_proxy
+from apigee_analysis.dashboard.labels import friendly_percentile, friendly_proxy
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Template intelligence — effect, hypothesis, fix, auto-resolve classification
@@ -492,7 +492,7 @@ def _current_incidents_tab(settings: Settings) -> None:
                 st.markdown(f"**Root cause hypothesis:**  \n{hypothesis}")
 
             with col_right:
-                st.metric("Signal strength", f"{z:.1f}σ")
+                st.metric("Signal Strength", friendly_percentile(z))
                 st.metric("Error rate",      f"{er:.0%}" if er > 0 else "—")
                 st.metric("Duration",        f"{hours}h")
                 if n_apps > 0:

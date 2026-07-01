@@ -1,6 +1,7 @@
 """Human-friendly label helpers — converts technical identifiers to business language."""
 from __future__ import annotations
 
+import math
 import re
 
 # ── OpCo code → display name ─────────────────────────────────────────────────
@@ -98,3 +99,35 @@ _MEASURE_LABELS: dict[str, str] = {
 
 def friendly_measure(measurement: str) -> str:
     return _MEASURE_LABELS.get(measurement, measurement.replace("_", " ").title())
+
+
+# ── Z-score → percentile ──────────────────────────────────────────────────────
+# Signal strength is stored internally as a Z-score (std deviations from
+# baseline). Displaying raw sigma/multiplier notation ("5.7σ", "5.7×") is
+# opaque to a non-statistical audience. A percentile — "how extreme is this
+# compared to normal hourly readings" — reads the same way regardless of
+# audience. Uses math.erf (stdlib) so no scipy dependency is needed.
+
+def z_to_percentile(z: float) -> float:
+    """Two-sided percentile (0-100) for an absolute Z-score.
+
+    Matches the classic 68-95-99.7 rule: z=1 -> 68.3, z=2 -> 95.4, z=3 -> 99.7.
+    Represents "this deviation is more extreme than X% of normal observations."
+    """
+    z = abs(z)
+    frac_within = math.erf(z / math.sqrt(2))
+    return frac_within * 100.0
+
+
+def friendly_percentile(z: float, *, compact: bool = False) -> str:
+    """Format a Z-score as a percentile string.
+
+    compact=False -> "99.7th percentile"  (for st.metric, prose)
+    compact=True  -> "99.7%ile"            (for table cells)
+    """
+    pct = z_to_percentile(z)
+    if pct >= 99.95:
+        pct_str = ">99.9"
+    else:
+        pct_str = f"{pct:.1f}"
+    return f"{pct_str}%ile" if compact else f"{pct_str}th percentile"

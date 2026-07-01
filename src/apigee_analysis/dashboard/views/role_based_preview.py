@@ -17,7 +17,7 @@ import streamlit as st
 
 from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
-from apigee_analysis.dashboard.labels import friendly_proxy
+from apigee_analysis.dashboard.labels import friendly_percentile, friendly_proxy
 
 _NAVY   = "#1B2A4A"
 _GOLD   = "#FFCB05"
@@ -146,7 +146,7 @@ def _monitoring_noc_tab(settings: Settings) -> None:
         else:
             display = uni.sort_values("z_score", key=lambda s: s.abs(), ascending=False).head(8).copy()
             display["API"]      = display["proxy"].apply(friendly_proxy)
-            display["Signal"]   = display["z_score"].apply(lambda x: f"{abs(x):.1f}σ")
+            display["Signal"]   = display["z_score"].apply(lambda x: friendly_percentile(x, compact=True))
             display["Sustained"] = display["sustained"].apply(lambda x: "🔴 Yes" if x else "🟡 New")
             st.dataframe(
                 display[["API", "type", "Signal", "Sustained"]].rename(columns={"type": "Category"}),

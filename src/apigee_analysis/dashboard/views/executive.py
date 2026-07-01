@@ -8,7 +8,7 @@ import streamlit as st
 
 from apigee_analysis.config import Settings
 from apigee_analysis.dashboard import queries
-from apigee_analysis.dashboard.labels import friendly_proxy, friendly_type
+from apigee_analysis.dashboard.labels import friendly_percentile, friendly_proxy, friendly_type
 
 _COUNTRY_NAMES: dict[str, str] = {
     "GHA": "Ghana",        "NGA": "Nigeria",       "ZAF": "South Africa",
@@ -292,7 +292,7 @@ def _build_catch(catch: dict) -> dict:
         t_label  = friendly_type(row["type"], row.get("error_class", ""))
         er       = row.get("error_rate")
         rate_str = f" — current error rate {er:.1%}" if er and er > 0 else ""
-        headline = f"{name} is showing a signal {z:.1f}× above its normal level."
+        headline = f"{name} is showing a signal in the {friendly_percentile(z)} versus its normal range."
         detail   = f"{t_label}{rate_str}."
 
     else:  # "pattern"
