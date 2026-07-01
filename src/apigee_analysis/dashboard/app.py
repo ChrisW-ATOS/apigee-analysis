@@ -4,7 +4,15 @@ from __future__ import annotations
 import streamlit as st
 
 from apigee_analysis.config import get_settings
-from apigee_analysis.dashboard.views import api_intelligence, executive, incident_response, live_monitoring, opco_analytics
+from apigee_analysis.dashboard.views import (
+    api_intelligence,
+    executive,
+    incident_response,
+    live_monitoring,
+    opco_analytics,
+    role_based_preview,
+    teams_integration,
+)
 
 st.set_page_config(
     page_title="MTN API Intelligence",
@@ -45,12 +53,30 @@ settings = get_settings()
 with st.sidebar:
     st.markdown("# MTN API Intelligence")
     st.caption("AI-powered API health monitoring across 15 Operating Companies")
+
+    # Microsoft Entra ID sign-in mockup — no live tenant connection yet.
+    st.html("""
+<div style="background:#0F1B33;border:1px solid #2D3E5C;border-radius:8px;
+            padding:10px 12px;margin:8px 0 4px 0;">
+    <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">🔐</span>
+        <div>
+            <div style="font-size:11px;color:#FFCB05;font-weight:700;">Microsoft Entra ID</div>
+            <div style="font-size:11px;color:#CBD5E1;">chris.walley@mtn.com</div>
+            <div style="font-size:10px;color:#64748B;">Role: Developer (preview)</div>
+        </div>
+    </div>
+</div>
+""")
+    st.caption("Preview only — tenant integration not yet connected. See **Role-Based Views**.")
+
     st.divider()
 
     page = st.radio(
         "Navigate",
         options=["Platform Overview", "Monitoring", "Incident Response",
-                 "API Intelligence", "OpCo Analytics"],
+                 "API Intelligence", "OpCo Analytics",
+                 "Role-Based Views", "Teams Integration"],
         label_visibility="collapsed",
     )
 
@@ -73,3 +99,7 @@ elif page == "API Intelligence":
     api_intelligence.render(settings)
 elif page == "OpCo Analytics":
     opco_analytics.render(settings)
+elif page == "Role-Based Views":
+    role_based_preview.render(settings)
+elif page == "Teams Integration":
+    teams_integration.render(settings)
