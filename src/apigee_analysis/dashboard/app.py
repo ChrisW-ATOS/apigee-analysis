@@ -80,6 +80,14 @@ with st.sidebar:
 
     st.divider()
 
+    st.link_button(
+        "📊  View Pitch Deck",
+        "app/static/agentic-development-lifecycle.html",
+        use_container_width=True,
+    )
+
+    st.divider()
+
     if st.button("⟳  Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
